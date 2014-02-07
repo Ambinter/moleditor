@@ -1,0 +1,8 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews
+    
+    RewriteEngine On
+    RewriteBase /MolEditor
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ web [QSA,L]
+</IfModule>

@@ -1,0 +1,21 @@
+<form class="well well-sm text-center form-inline" action="{{path('search', {'dbname':dbname})}}" method="POST" id="formsearch">
+	{{form_widget(formsearch.col, {'id':'coltype' })}}
+	{{form_widget(formsearch.searchtypenumeric, {'attr':{'class':'numeric hide-text'} } ) }}
+	{{form_widget(formsearch.searchtypetext, {'attr':{'class':'text hide-numeric' }}) }}
+	{{form_widget(formsearch.search)}}
+	{{form_rest(formsearch)}}
+	<button type="submit" class="btn btn-sm btn-primary"  name="validsearch"><span class="glyphicon glyphicon-search"></span> Search</button>
+	
+	<a class="btn btn-sm" href="{{ path('reset', {'dbname':dbname}) }}">Reset</a>
+</form>
+	<script>
+		$(".numeric").hide();
+		{% for alias, coltype in coltypes %}
+			coltype["{{alias}}"]="{{coltype}}";
+		{% endfor %}
+		$("#coltype").change(function(){
+			var colalias = $("#coltype option:selected").val();
+			$("."+coltype[colalias]).show();
+			$(".hide-"+coltype[colalias]).hide();
+		});
+	</script>

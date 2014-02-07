@@ -1,0 +1,69 @@
+{% extends "layout.twig" %}
+
+{%block content%}
+
+<div class="modal fade" id="previewOne" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="export" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+
+
+    <div class=" pull-right">
+	<a class=" btn btn-sm btn-info" href="{{ path ('display', {'dbname': dbname}) }}"><span class="glyphicon glyphicon-th-list"></span> Table view</a>
+
+	<span class="label label-default">{{nbmol}} entries</span>
+	<a href="{{ path ('preview', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+	{% if offset-1>=0 %}
+		<a href="{{ path ('preview', {'dbname': dbname, 'offset': offset-1}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+	{%endif%}
+	{{offset+1}}/{{(nbmol/200 //1)+1}}
+	{% if ((offset+1)*200) <= nbmol %}
+	    <a href="{{ path ('preview', {'dbname': dbname, 'offset': offset+1}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+	{%endif%}
+	    <a href="{{ path ('preview', {'dbname': dbname, 'offset': (nbmol/200 //1)+1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+    </div>
+
+<br/>
+<hr/>
+<div class="row">
+{% for id, val in structures %}
+  <a data-toggle="modal" href="{{ path ('previewOne', {'dbname': dbname, 'id': id}) }}" data-target="#previewOne">
+      <div class="col-sm-4 col-md-2 ">
+	<div class="thumbnail text-center">
+		{{val.structure|raw}}
+	  <div class="caption">
+		<a class="pull-right" onClick="SuppConfirm('{{ path ('deleteRow', {'dbname': dbname, 'id':id, 'offset':offset}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
+		<span class="pull-left badge">{{id}}</span>
+		{% if val.header %}
+		    {{val.header}}
+		{% else %}
+		    <span class="text-danger">No header</span>
+		{% endif %}
+		
+	  </div>
+	</div>
+      </div>
+    </a>
+{% endfor %}
+</div>
+	
+<hr/>
+<a class="btn btn-danger btn-lg marginb" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
+
+<script>
+	function SuppConfirm(link)
+	{
+		if (confirm('Confirm row deletion ?'))
+		{
+			document.location.href=link;
+		}
+		else
+		{
+			return false;
+		}
+	}
+</script>
+
+{%endblock%}
+
+

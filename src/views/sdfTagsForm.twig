@@ -1,0 +1,80 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3 class="modal-title">Importation: field selection</h3>
+		</div>
+		<form class="formimport2" action="{{ path('import2', {'dbname':dbname})}}" method="POST" name="form_import2">
+			<div class="modal-body">
+				{% if nb_mol %}
+					<div class="well">The selected file contains {{nb_mol}} molecules</div>
+					{% if nb_tags>0 %}
+						<h4 class="text-info">Choose fields to import and correspondance with existing fields</h4>
+						<table class="table table-condensed table-hover" >
+							<thead>
+							</thead>
+
+							<tbody>
+								<tr>
+									<th>Imported field</th>
+									<th>Existing field</th>
+								</tr>
+								<tr>
+									<th><a class="small" onClick="$('input:checkbox').removeAttr('checked');">Unselect all</a></th><th></th>
+								</tr>
+								{% for i in 0..(nb_tags-1) %}
+									<tr>
+										<td>{{ form_widget(attribute(form, 'suppr'~i)) }} {{ form_label(attribute(form, 'suppr'~i)) }}</td>
+										<script>
+											if ($('#form_existTag{{i}} option:selected').val())
+											{
+												$('#newfield{{i}}').hide();
+											}
+											else
+											{
+												$('#newfield{{i}}').show();
+											}
+
+											$('#form_existTag{{i}}').change(function() {
+												if ($('#form_existTag{{i}} option:selected').val())
+												{
+													$('#newfield{{i}}').hide();
+												}
+												else
+												{
+													$('#newfield{{i}}').show();
+												}
+											});
+										
+										
+										</script>
+										<td>
+											{% if existTags  %}
+												{{ form_widget(attribute(form, 'existTag'~i)) }}<span id="newfield{{i}}" class="small newfield">New field will be created</span>
+											{% else %}
+												<span class="small">No field yet</span>
+											{% endif %}
+										</td>
+
+									</tr>
+									
+								{% endfor %}
+							</tbody>
+							<tfoot></tfoot>
+						</table>
+						{{form_rest(form)}}
+					{% else %}
+						<div class="alert alert-warning">No additional field to import in this file</div>
+					{% endif %}
+				{% else %}
+					<div class="alert alert-danger">No molecule to import</div>
+				{% endif %}
+				
+			</div>
+			
+			<div class="modal-footer">
+				<button class="btn btn-success btn-lg" type="submit"><span class="glyphicon glyphicon-save"></span> Import in your base</button>
+			</div>
+			{{form_end(form)}}
+	</div>
+</div>

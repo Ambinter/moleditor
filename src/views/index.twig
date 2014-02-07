@@ -1,0 +1,61 @@
+{% extends "layout.twig" %}
+
+{%block precontent%}
+
+<div class="jumbotron">
+  <div class="container">
+    <div class="media">
+        <img class="logo media-object pull-left" src="{{ app.request.basepath }}/images/moleditor_logo.png"/>
+        <div class="media-body">
+            <h2 class="media-heading">MolEditor</h2>
+            <p>A free software to create, edit and export a simple molecular base online <a class="btn btn-warning" role="button" href="{{path('learnMore')}}">Learn more</a></p>
+        </div>
+    </div>	    
+  </div>
+</div>
+{%endblock%}
+
+{%block content%}
+
+<div class="container">
+    <form method="POST" class="well form_index " name="form_sdf" enctype="multipart/form-data">
+        {% if form_errors(form)%}
+            <div class="alert alert-danger">{{ form_errors(form) }}</div>
+        {% endif %}
+        
+            <div class="form-group">
+             {{ form_label(form.dbname, 'Choose a name for your base') }}
+              {{ form_widget(form.dbname) }}
+            </div>            
+              
+            <div class="form-group">
+                <button class="btn btn-lg btn-primary" type="submit" name="valid"><span class="glyphicon glyphicon-upload"></span> START A NEW BASE</button>
+            </div>
+        
+          {{ form_rest(form) }}
+    </form>
+    
+<div class="row text-center pres">
+
+    <div class="col-sm-6 col-md-4">
+      <span class="glyphicon glyphicon-plus"></span>
+        <h3>Create a molecule database</h3>
+        <p>It is really easy to import your data (SDF or smiles) or start drawing throught the sketcher. </p>
+    </div>
+  
+    <div class="col-sm-6 col-md-4">
+      <span class="glyphicon glyphicon-sort"></span>
+        <h3>Manage your compounds</h3>
+        <p>Sort fields, add columns, compute descriptors, check commercial availability...</p>
+    </div>
+
+    <div class="col-sm-6 col-md-4">
+      <span class="glyphicon glyphicon-export"></span>
+        <h3>Export your data</h3>
+        <p>Save your database in several useful format as SDF, SMILES, XLS...</p>
+    </div>
+    
+</div>
+
+</div>
+{%endblock%}

@@ -1,0 +1,23 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3 class="modal-title">Save your database</h3>
+		</div>
+		<div class="modal-body">
+			<h4 class="text-info">Main export format (SDF)</h4>
+				<a class="btn btn-lg btn-info" href="{{ path ('export', {'dbname': dbname, 'type':'sdf'}) }}"><span class=" glyphicon glyphicon-save"></span> Export SDF</a>
+				<hr/>
+			<h4 class="text-info">Other formats <span class="small">Export could take few minutes for larger files</small></h4>
+				<a class="btn btn-primary" href="{{ path ('export', {'dbname': dbname, 'type':'smi'}) }}"><span class=" glyphicon glyphicon-save"></span> Smiles</a>
+				<a class="btn btn-primary" href="{{ path ('export', {'dbname': dbname, 'type':'csv'}) }}"><span class=" glyphicon glyphicon-save"></span> CSV</a>
+				<a class="btn btn-primary" href="{{ path ('export', {'dbname': dbname, 'type':'xls'}) }}"><span class=" glyphicon glyphicon-save"></span> XLS</a>
+				{#<a class="btn btn-primary" href="{{ path ('export', {'dbname': dbname, 'type':'pdf'}) }}"><span class=" glyphicon glyphicon-save"></span> PDF</a>#}
+
+		</div>
+		<div class="modal-footer">
+
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+	</div>
+</div>

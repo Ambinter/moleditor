@@ -1,0 +1,38 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h4 class="modal-title">Update column <strong>{{form.vars.value.colname}}</strong></h4>
+		</div>
+			<form class="" action="/MolEditor/web/column-update/{{dbname}}/col{{column.alias}}" method="POST" name="colupdate">
+			<div class="modal-body">
+				<div class="form-group">
+					{{ form_label(form.colname, 'Column name') }}	
+					{{ form_widget(form.colname) }}	
+				</div>
+				<div class="form-group">
+					{{ form_label(form.coltype, 'Column type') }}	
+					{{ form_widget(form.coltype) }}	
+				</div>
+				<div class="form-group">
+					{{ form_label(form.values) }}	
+					{{ form_widget(form.values) }}	
+				</div>
+				<div class="form-group">
+					{{ form_label(form.sameForAll, 'Same value for all lines (will erase all previous data)') }}	
+					{{ form_widget(form.sameForAll) }}	
+				</div>
+					{{ form_rest(form) }}	
+			</div>
+			
+			<div class="modal-footer">
+			{% if column.order is defined %}
+				<a class="pull-left btn btn-danger btn-sm" href="{{path('deleteCol', {'dbname':dbname, 'col_order':column.order})}}"><span class="glyphicon glyphicon-trash"></span> Delete this column</a>
+			{% endif %}
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				<button type="submit" class="btn btn-success">Save changes</button>
+			</div>
+		</form>
+	</div>
+</div>
+

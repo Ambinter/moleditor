@@ -1,0 +1,18 @@
+<form action="{{ path ('changeColType', {'dbname':dbname, 'alias':alias} ) }}" method="POST" name="formcoltype{{alias}}" id="formcoltype{{alias}}">
+	{{form_errors(form)}}
+	{{form_widget(form.coltype, {'id':'coltype' ~ alias })}}
+	{{form_row(form._token)}}
+</form>
+
+<script>
+	$("#coltype{{ alias }}").change(function(){
+		$.ajax({
+                url: $("#formcoltype{{alias}}").attr('action'), // le nom du fichier indiqué dans le formulaire
+                type: $("#formcoltype{{alias}}").attr('method'), // la méthode indiquée dans le formulaire (get ou post)
+                data: $("#formcoltype{{alias}}").serialize(), // je sérialise les données (voir plus loin), ici les $_POST
+                success: function(data) { // je récupère la réponse du fichier PHP
+		    $("#colManagement").html( data );
+                }
+            });
+	});
+</script>

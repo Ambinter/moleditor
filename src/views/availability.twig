@@ -1,0 +1,8 @@
+<div class="marginb"></div>
+{% if available=='NA' %}
+	<span class="label label-danger">Not available</span>
+{% elseif available!='' %}
+	<a title="Availaible on Ambinter website" class="label label-success" href="http://www.ambinter.com/reference/{{available}}">
+		Amb{{available}}
+	</a>
+{% endif %}

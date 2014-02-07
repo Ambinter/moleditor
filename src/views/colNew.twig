@@ -1,0 +1,8 @@
+<form class="form-inline" action="{{path('newCol', {'dbname':dbname})}}" method="POST" name="colnew">
+    {{ form_label(form.colname, 'New user column') }}
+    {{ form_widget(form.colname) }}
+    {{ form_rest(form)}}
+<input class="btn btn-sm btn-success" type="submit" value="ADD COLUMN"/>
+<div class="small"><i>Choose a name and add a customed column, then fill the values manually.</i></div>
+
+</form>

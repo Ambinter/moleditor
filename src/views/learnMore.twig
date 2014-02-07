@@ -1,0 +1,99 @@
+{% extends "layout.twig" %}
+
+
+{%block content%}
+
+<div class="container">
+
+<div class="jumbotron">
+  <div class="container">
+    <div class="media">
+        <span class="media-object pull-left glyphicon glyphicon-book"></span>
+        <div class="media-body">
+            <h2 class="media-heading">Learn more about MolEditor<small> an Ambinter software</small></h2>
+	    <p class="small">MolEditor is a powerful free software to easily create or import and modify chemical database online.</p>
+        </div>
+    </div>	    
+  </div>
+</div>
+
+<ul class="media-list">
+
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-th"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Clear display, high performances</h4>
+		Data are displayed in a clear table (or optionally thumbnails) format.<br/>
+		It is fast, you can easily browse thousands of compounds.  
+	</div>
+    </li>
+    
+    
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-import"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Create or import</h4>
+		Start a new molecule database or import and combine SDF and SMILES files.
+	</div>
+    </li>
+
+    
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-edit"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Edit and manage data</h4>
+		Change a field value, edit a structure, add or delete molecules.<br/>
+		You can also sort, move, create or delete columns like in a classic spreadsheet.
+	</div>
+    </li>
+
+    
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-search"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Search for data</h4>
+		You can filter item matching a customed pattern.
+	</div>
+    </li>
+
+   
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-cog"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Descriptors</h4>
+		Automatically add computed descriptors (using OpenBabel) like molecular weight, acceptors, donors...
+	</div>
+   </li>
+
+   
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-export"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Export</h4>
+		Work is finished? You can export data in several useful formats (<abbr title="Structure Data File">SDF</abbr>, SMILES, <abbr title="Comma-Separated Values">CSV</abbr> or XLS)
+	</div>
+    </li>
+    
+    <li class="media">
+	<span class="pull-left media-object glyphicon glyphicon-shopping-cart"></span>
+	<div class="media-body">
+		<h4 class="media-heading">Want to buy compounds?</h4>
+		Easily check if structures are commercially available on <a href="www.ambinter.com"/> Ambinter</a> online catalogue.
+	</div>
+   </li>
+   
+   
+    <li class="media">
+		<span class="pull-left media-object glyphicon glyphicon-download"></span>
+		<div class="media-body">
+			<h4 class="media-heading">Free software</h4>
+			SDF Editor is a free and opensource software. You can use it online or download it and install it on your own server. <br/>
+			You are a developer? visit our dedicated contributing section to learn more about this sofware.
+		</div>
+   </li>
+   
+   </ul>
+	<hr/>
+	<p>MolEditor use different free software: <a href="http://silex.sensiolabs.org/">Silex</a> (PHP framework), <a href="http://ggasoftware.com/opensource">Ketcher and Indigo</a> (chemoinformatics tools), <a href="http://openbabel.org">OpenBabel</a> (chemistry toolbox)</p>
+</div>
+{%endblock%}

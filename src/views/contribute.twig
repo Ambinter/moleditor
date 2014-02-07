@@ -1,0 +1,45 @@
+{% extends "layout.twig" %}
+
+{%block content%}
+<div class="container">
+
+<div class="jumbotron">
+  <div class="container">
+    <div class="media">
+        <span class="media-object pull-left glyphicon glyphicon-thumbs-up"></span>
+        <div class="media-body">
+            <h2 class="media-heading">You want to contribute ?</h2>
+	    <p class="small">MolEditor is a free software. You can help us in many different ways: report bugs, develop new features or simply give us your feedback..</p>
+        </div>
+    </div>	    
+  </div>
+</div>
+
+<ul class="media-list">
+
+    <li class="media">
+		<span class="pull-left media-object glyphicon glyphicon-th"></span>
+		<div class="media-body">
+			<h4 class="media-heading">Download MolEditor</h4>
+			You want to install MolEditor on your own server? It is easy: download it put files on your server. Requirements are only PHP5.3 and Sqlite.     
+		</div>
+    </li>
+    
+    <li class="media">
+		<span class="pull-left media-object glyphicon glyphicon-book"></span>
+		<div class="media-body">
+			<h4 class="media-heading">Documentation</h4>
+			You want to develop new features for MolEditor ? Join our project on GitHub to access source code and developers documentation.
+		</div>
+    </li>
+    
+    <li class="media">
+		<span class="pull-left media-object glyphicon glyphicon-envelope"></span>
+		<div class="media-body">
+			<h4 class="media-heading">Report bugs and feedback</h4>
+			Do not hesitate to send bugs reports on GitHub or <a href="mailto:chemoinformatics@ambinter.com">send us</a> your feedback or questions. 
+		</div>
+    </li>
+   </div>
+
+{% endblock %}

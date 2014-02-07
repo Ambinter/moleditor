@@ -1,0 +1,8 @@
+<form class="form-inline" action="{{path('newDesc', {'dbname':dbname})}}" method="POST" name="colnew">
+    {{ form_label(form.coldesc, 'New descriptor column') }}
+    {{ form_widget(form.coldesc) }}
+    {{ form_rest(form)}}
+<input class="btn btn-sm btn-success" type="submit" value="ADD DESCRIPTOR"/>
+<div class="small"><i>Add a column with automatically computed descriptor values (using OpenBabel).</i></div>
+
+</form>

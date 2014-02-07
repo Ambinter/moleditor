@@ -1,0 +1,92 @@
+<html>
+<head>
+    <link href="{{ app.request.basepath }}/css/bootstrap.css" rel="stylesheet" media="screen">
+    <link href="{{ app.request.basepath }}/css/molEditor.css" rel="stylesheet" media="screen">
+    <link rel="shortcut icon" href="{{ app.request.basepath }}/images/favicon.ico" />
+    <script src="//code.jquery.com/jquery.js"></script>
+    <script src="{{ app.request.basepath }}/js/bootstrap.js"></script>
+    <script src="{{ app.request.basepath }}/js/hinclude.js"></script>
+
+<!-- The basic File Upload plugin
+<script src="{{ app.request.basepath }}/js/jquery.fileupload.js"></script>
+ -->
+    
+    </head>
+<body>
+    <nav class="navbar navbar-default" role="navigation">
+      <!-- Brand and toggle get grouped for better mobile display -->
+	<div class="navbar-header">
+	    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+	      <span class="sr-only">Toggle navigation</span>
+	      <span class="icon-bar"></span>
+	      <span class="icon-bar"></span>
+	      <span class="icon-bar"></span>
+	    </button>
+	    
+	    <a class="navbar-brand" href="{{path('index')}}">
+		
+		<img class="logo" src="{{ app.request.basepath }}/images/moleditor_logo.png"/>
+		MolEditor <small><span class="text-info small">an Ambinter software</span></small>
+	    </a>
+	</div>
+      <!-- Collect the nav links, forms, and other content for toggling -->
+	<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	    <ul class="nav navbar-nav">
+	      {#<li class=""><a class="" href="{{path('index')}}"><span class="glyphicon glyphicon-plus"></span> New</a></li>#}
+	     {{ render(path('listDB')) }}
+	    </ul>
+	    <ul class="nav navbar-nav navbar-right">
+		<li class="">
+		    {%- if dbname is defined %}
+		       <a class="" data-toggle="modal" data-target="#dbconfig" href="{{path('dbConfig', {'dbname':dbname})}}"><span class="glyphicon glyphicon-cog"></span> {{dbname}}</a>
+		    {% endif -%}
+		</li>
+	    </ul>
+	</div>
+    </nav>
+    
+
+    {% for type, flashMessages in app.session.flashbag.all() %}
+	{% for flashMessage in flashMessages %}
+	    <div class="container alert alert-{{ type }} alert-dismissable">
+		<span class="large glyphicon glyphicon-exclamation-sign"></span>
+		<strong>{{ flashMessage }}</strong>
+		<a class="close" data-dismiss="alert" aria-hidden="true" href="#">&times;</a>
+	    </div>
+	{% endfor %}
+    {% endfor %}
+    
+    {%block precontent%}
+    {%endblock%}
+    {#<div class="load" >Loading...</div>#}
+
+    <div class="content">
+	    {%block content%}
+	    {%endblock%}
+    </div>
+
+    <nav class="footer text-center" role="navigation">
+	<ul class="list-inline">
+	    <li><a target="ambinter" href="{{path('aboutUs')}}">About us</a></li> {# ambinter, gp, contact#}
+	    {#<li><a href="">Help</a></li>#}
+	    <li><a href="{{path('contribute')}}">Contribute</a></li> {# documentation, download#}
+	    <li><a href="{{path('license')}}">License</a></li>
+	<li class="small margin navbar-right">
+	    Copyright<a target="top" href="http://www.ambinter.com/about-us"> Ambinter</a>, 2013 
+	</li>
+	</ul>
+    </nav>
+    <script>
+	$('body').on('hidden.bs.modal', '.modal', function () {
+		$(this).removeData('bs.modal');
+	});
+
+	{#//$(document).ready(function() {
+	    ////alert('ready');
+	    //$('.load').hide();
+	//});
+	#}
+    </script>
+	
+</body>
+</html>

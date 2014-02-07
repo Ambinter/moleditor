@@ -1,0 +1,36 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h4 class="modal-title">
+				Preview of structure ID {{structures.ID}}
+			</h4>
+		</div>
+		<div class="modal-body">
+			{% for key, val in structures %}
+				{% if key=='structure' %}
+					<div class="img-thumbnail">{{val|raw}}</div>
+				{% endif %}
+				{% if key=='header' %}
+					<hr/>
+					{%if val %}
+						<h4><strong>Header: </strong>{{val}}</h4>	
+					{% else %}
+						<h4 class="text-danger">No header</h4>
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+			<ul>
+			{% for key, val in structures %}
+				{% if key!='structure' and key!='ID' and key!='header'  %}
+					<li><strong>{{key}}: </strong>{{val}}</li>
+				{% endif %}
+			{% endfor %}			
+			</ul>
+		</div>
+		<div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+	</div>
+</div>
+

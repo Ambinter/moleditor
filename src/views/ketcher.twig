@@ -1,0 +1,63 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h4 class="modal-title">
+				{% if id=='new'%}
+					New structure
+				{% else %}
+					Edit Structure {{id}}
+				{% endif %}
+			</h4>
+		</div>
+		
+		<form action="{{ path('ketcher', {'dbname':dbname, 'id':id })}}" method="POST">
+			<div class="modal-body row">
+				<iframe class="col-md-12" onload="loadmol();" id="ifKetcher" src="{{ app.request.basepath }}/ketcher/ketcher.html" width="800" height="530"></iframe>
+
+					{{ form_widget(form) }}
+
+					<script>
+						var ketcherFrame = document.getElementById('ifKetcher');
+						var editor = null;
+
+						function loadmol ()
+						{
+							if ('contentDocument' in ketcherFrame)
+							{
+								editor = ketcherFrame.contentWindow.ketcher;
+							}
+						// if IE7
+							else
+							{
+								editor = document.frames['ifKetcher'].window.ketcher;
+							}
+	  
+							editor.setMolecule(document.getElementById('form_molstruct').value);   
+		
+						}
+
+						function transfert()
+						{
+							if ('contentDocument' in ketcherFrame)
+							{
+								editor = ketcherFrame.contentWindow.ketcher;
+							}
+						// if IE7
+							else
+							{
+								editor = document.frames['ifKetcher'].window.ketcher;
+							}
+							document.getElementById('form_molstruct').value=editor.getMolfile();
+						}
+				
+				</script>
+
+			</div>
+			<div class="modal-footer">
+				<input type="submit" class="btn btn-success" value="VALIDATION" onclick="transfert();" />
+				{#<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>#}
+			</div>
+		</form>
+	</div>
+</div>

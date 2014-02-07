@@ -1,0 +1,97 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3 class="modal-title">Columns management</h3>
+		</div>
+		<div class="modal-body">
+			<h4 class="text-info">Move, change type or delete column</h4>
+
+				<table class="table table-condensed table-hover">
+					<thead>
+					</thead>
+
+					<tbody>
+						{% for colhead in columns %}
+							<tr>
+								<th>
+									{{ colhead.name }}
+									{% if colhead.type=='descriptor' %}
+										<span class="small help text-muted descriptor glyphicon glyphicon-cog" title="Calculated descriptor (using OpenBabel)"></span>
+									{% endif %}
+								</th>
+								<td>
+									{{ render(path('changeColType', {'dbname': dbname, 'alias':colhead.alias})) }}
+								</td>
+								<td>
+									<a id="moveColDown{{ colhead.order }}">
+										<span title="Move this column Up" class="glyphicon glyphicon-chevron-up"></span>
+									</a>
+								</td>
+								<td>
+									<a id="moveColUp{{ colhead.order }}">
+										<span  title="Move this column Down" class="glyphicon glyphicon-chevron-down"></span>
+									</a>
+								</td>
+								<td>
+									<a id="deleteCol{{ colhead.order }}" >
+										<span title="Delete this column" class="glyphicon glyphicon-trash"></span>
+									</a>
+								</td>
+
+							</tr>
+							<script>
+								$("#deleteCol{{ colhead.order }}").click(function(){
+									$("#colManagement").load("{{ path ('deleteCol', {'dbname': dbname, 'col_order':colhead.order}) }}");
+								});
+								$("#moveColDown{{ colhead.order }}").click(function(){
+									$("#colManagement").load("{{ path ('moveCol', {'dbname': dbname, 'col_order':colhead.order, 'dir':'down'}) }}");
+								});
+								$("#moveColUp{{ colhead.order }}").click(function(){
+									$("#colManagement").load("{{ path ('moveCol', {'dbname': dbname, 'col_order':colhead.order, 'dir':'up'}) }}");
+								});							
+							</script>
+						{% endfor %}
+						
+					</tbody>
+
+					<tfoot>
+					</tfoot>
+				</table>
+
+				<hr/>
+				<h4 class="text-info">Add new column</h4>
+				{{ render(path('newDesc', {'dbname': dbname})) }}
+				<p><strong>or</strong></p>
+				{{ render(path('newCol', {'dbname': dbname})) }}
+
+
+				<hr/>
+					<div id="checkav"" class=" onoff pull-right" href="{{ path ('check-availability', {'dbname': dbname}) }}">
+						{%if app.session.get('availability')==1 %}
+						<span class="spin on"></span>
+						{% else %}
+						<span class="spin off"></span>
+						{% endif %}
+					</div>
+					<h4 class="text-info">Check availability</h4>
+					<script>
+						$("#checkav").click(function(){
+							$("#colManagement").load("{{ path ('check-availability', {'dbname': dbname}) }}");
+						});
+					</script>
+				<p>
+					
+					<small>Add a column with commercial availability of structures on <a href="http://www.ambinter.com">Ambinter</a> catalogue.</small>
+				</p>
+
+		</div>
+		<div class="modal-footer">
+
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+	</div>
+</div>
+
+
+

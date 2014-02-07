@@ -1,0 +1,41 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3 class="modal-title">Database Configuration</h3>
+		</div>
+		<div class="modal-body">
+			<h4 class="text-info">Rename database</h4>
+			<form class="form-inline" action="{{path('dbConfig', {'dbname':dbname}) }}" method="POST">
+			<div class="form-group">		
+				{{ form_label(form.dbname) }}
+				{{ form_widget(form.dbname) }}
+			</div>
+				<button class="btn btn-primary" type="submit">Rename</button>
+			{{ form_rest(form) }}				
+			{{ form_end(form) }}				
+			<hr/>
+			<h4 class="text-info">Delete database</h4>
+			<a class="btn btn-danger" onClick="SuppConfirm('{{path('deleteDB', {'dbname':dbname})}}')"><span class="glyphicon glyphicon-trash"></span> Delete the database</a>
+			<span class="small"><span class="glyphicon glyphicon-warning-sign"></span> <i>Database will be definitively removed and all data will be lost.</i></span>
+		</div>
+		<div class="modal-footer">
+
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+	</div>
+	
+	<script>
+		function SuppConfirm(link)
+		{
+			if (confirm('Confirm database deletion ?'))
+			{
+				document.location.href=link;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	</script>
+</div>

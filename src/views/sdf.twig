@@ -1,0 +1,205 @@
+{% extends "layout.twig" %}
+
+{%block content%}
+
+<div class="modal fade" id="colUpdate" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="colManagement" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="import" data-toggle tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="export" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="import2" data-toggle tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="ketcher" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="dbconfig" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+
+<div class="col-md-3">
+	
+	<a id="importbutton" class=" btn btn-lg btn-success marginb" data-toggle="modal" href="{{ path ('import', {'dbname': dbname}) }}" data-target="#import"><span class="glyphicon glyphicon-import"></span> Add structures</a>
+
+	<a class="btn btn-sm btn-info marginb" data-toggle="modal" href="{{ path ('colManagement', {'dbname': dbname}) }}" data-target="#colManagement"><span class="glyphicon glyphicon-wrench"></span> Columns</a>
+	
+</div>
+
+<div class="col-md-6">
+	{{ render(path('search', {'dbname': dbname})) }}
+</div>
+
+<div class="col-md-3">
+	{% set pageup = app.session.get('config').offset +1 %}
+	{% set pagedown = app.session.get('config').offset -1 %}
+	<div class="pull-right">
+		<span class="label label-default">{{nbmol}} entries</span>
+		<a href="{{ path ('page', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+		{% if pagedown>=0 %}
+			<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+		{%endif%}
+		{{pageup}} / {{(nbmol/25 //1)+1}}
+		{% if (pageup*25) <= nbmol %}
+			<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+		{%endif%}
+			<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/25 //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+	</div>
+
+	<a class="btn btn-info btn-sm pull-right marginb marginr"  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}"><span class="glyphicon glyphicon-th"></span> Thumbnail view</a>
+</div>
+
+<hr/>
+
+<table class="table table-hover table-condensed table-bordered">
+	<thead>
+		<tr>
+			
+			{% for colhead in columns %}
+				<th>
+					{% set classorderby='' %}
+					{%if (colhead.alias==app.session.get('config').sort) and (app.session.get('config').dir=='asc') %}
+						{% set orderby='desc' %}
+					{% else %}
+						{% set orderby='asc' %}
+						{% set classorderby='-alt' %}
+					{% endif %}
+					
+					{% set sorttype='alphabet' %}
+					{% if (colhead.coltype=='numeric')%}
+						{% set sorttype='order' %}
+					{% endif %}					
+					
+					{% if colhead.name=='structure' %}
+						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span> </a>
+						{{ colhead.name }}
+
+					{% else %}
+						<a class="" href="{{ path ('sort', {'dbname': dbname, 'sort':colhead.alias, dir: orderby}) }}">
+							{{ colhead.name}}
+						</a>
+					{% endif %}
+					{% if colhead.type=='descriptor' %}
+						<span class="small help text-muted descriptor glyphicon glyphicon-cog" title="Calculated descriptor (using OpenBabel)"></span>
+					{% endif %}
+					{%if (colhead.alias==app.session.get('config').sort) %}
+					<span title="{{colhead.coltype}} sort" class="help glyphicon glyphicon-sort-by-{{sorttype}}{{classorderby}}"></span>
+					{% endif %}
+
+					{% if (colhead.name!='ID') and (colhead.name!='structure')%}
+						<a class="pull-right" data-toggle="modal" href="{{ path ('colUpdate', {'dbname': dbname, 'col':colhead.alias }) }}" data-target="#colUpdate"><span class=" glyphicon glyphicon-edit" title="Click to update column"></span></a>
+					{%endif%}
+				</th>
+			{% endfor %}
+			{% if app.session.get('availability')==1 %}
+				<th class="availability">Availability</th>
+			{% endif %}
+		</tr>
+		 
+	</thead>
+
+	<tbody>
+		{% for id, tag in tags %}
+		<tr>
+
+			{% for key,val in tag %}
+				<td>
+					{% set edit=0 %}
+					{% for colhead in columns %}
+						{% if key==colhead.alias and colhead.type=='tag' %}
+							{% set edit=1 %}
+						{% endif %}
+					{% endfor %}
+
+					{% if key == 'header'%}
+						{% set edit=1 %}
+					{% endif %}
+					{% if edit==1 %}
+						<a name="{{id}}"></a>
+						<form action="#{{id}}" method="POST" id="editform{{id}}-{{key}}">
+							<input name="id" type="hidden" value="{{id}}"/>
+							<input name="col" type="hidden" value="{{key}}"/>
+							<input id="newval{{id}}-{{key}}" class="input-sm"  name="newval" type="text" value="{{val|raw}}"/>
+						</form>
+					{% elseif key=='structure' %}
+						<a title="Click to edit structure" class="" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#ketcher">{{val|raw}}</a>
+					{% elseif key=='ID'%}
+						<div class="marginb badge">{{val}}</div>
+						<div><br/>
+						<a class="" onClick="SuppConfirm('{{ path ('deleteRow', {'dbname': dbname, 'id':id}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
+
+						</div>
+
+					{% else %}
+						{{val|raw}}
+					{% endif %}
+				</td>
+			{% endfor %}
+			{% if app.session.get('availability')==1 %}
+				<td class="availability">
+					{{ render_hinclude(path('availability', {'dbname': dbname, 'id':id})) }}
+				</td>
+			{% endif %}
+		</tr>
+		{% else %}
+			<tr><td class="text-center text-danger" colspan={{(columns|length)+2}}>No result</td></tr>
+
+		{% endfor %}
+	</tbody>
+
+	<tfoot>
+	</tfoot>
+</table>
+
+
+<a class="btn btn-danger btn-lg marginb" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
+
+<div class="pull-right">
+	<span class="label label-default">{{nbmol}} entries</span>
+	<a href="{{ path ('page', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+	{% if pagedown>=0 %}
+		<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+	{%endif%}
+	{{pageup}} / {{(nbmol/25 //1)+1}}
+	{% if (pageup*25) <= nbmol %}
+		<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+	{%endif%}
+		<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/25 //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+</div>
+
+
+<script>
+	{% if modal %}
+		$().ready(function(){
+			$('#{{modal}}').modal( {
+				show: true,
+				remote: '{{ path (modal, {'dbname': dbname}) }}'
+			});
+		});
+	{% endif %}
+
+	
+	$("form[id^='editform']").focusout(function() {
+			$(this).submit();
+		}
+	);
+	$('#colManagement').on('hide.bs.modal', function () {
+		location.reload();
+	});
+
+	function SuppConfirm(link)
+	{
+		if (confirm('Confirm row deletion ?'))
+		{
+			document.location.href=link;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+</script>
+
+{%endblock%}
+
+
