@@ -2,7 +2,7 @@
     Options -MultiViews
     
     RewriteEngine On
-    RewriteBase /MolEditor
+    RewriteBase /moleditor
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ web [QSA,L]
 </IfModule>

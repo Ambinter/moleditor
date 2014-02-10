@@ -106,7 +106,7 @@ $app->match('/', function () use ($app) {
 		    'danger',
 		    'Invalid work name '.$dbname.'. Please do not start it with a number !'
 		);
-		return $app->redirect('/MolEditor/web/');
+		return $app->redirect('/moleditor/web/');
 	    }
 
 	    // requests for database creation
@@ -116,7 +116,7 @@ $app->match('/', function () use ($app) {
 	    $results = $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
 	    $app['session']->set('modal', 'import');
 	    
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	    
         }
     }
@@ -176,7 +176,7 @@ $app->match('/database/config/{dbname}', function ($dbname) use ($app) {
 		    'danger',
 		    'Invalid name '.$new_dbname.'. Please do not start it with a number !'
 		);
-		return $app->redirect('/MolEditor/web/display/'.$dbname);
+		return $app->redirect('/moleditor/web/display/'.$dbname);
 	    }
 	    
 	// check if name did not exist yet
@@ -197,7 +197,7 @@ $app->match('/database/config/{dbname}', function ($dbname) use ($app) {
 		    'danger',
 		    'The database name '.$new_dbname.' already exist, please choose another one !'
 		);
-		return $app->redirect('/MolEditor/web/display/'.$dbname);
+		return $app->redirect('/moleditor/web/display/'.$dbname);
 	    }
 
 	// request for updating database name
@@ -208,7 +208,7 @@ $app->match('/database/config/{dbname}', function ($dbname) use ($app) {
 		'success',
 		'The database "'.$dbname.'" has been successfully renamed in "'.$new_dbname.'"!'
 	    );
-	    return $app->redirect('/MolEditor/web/display/'.$new_dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$new_dbname);           
 	}
     }
     return $app['twig']->render('dbConfig.twig', array(
@@ -227,7 +227,7 @@ $app->get('/database/delete/{dbname}', function ($dbname) use ($app) {
 	'success',
 	'The database '.$dbname.' has been deleted !'
     );
-   return $app->redirect('/MolEditor/web/');           
+   return $app->redirect('/moleditor/web/');           
 
 })->bind('deleteDB');
 
@@ -270,7 +270,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 			$app['depict']->convertSmilesFileToSdfFile($path.$filename.'.'.$extension);	
 		    }
 		    $modal = $app['session']->set('modal', 'import2');
-		    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+		    return $app->redirect('/moleditor/web/display/'.$dbname);           
 		}
 		else
 		{
@@ -279,7 +279,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 			'Importation error: The file extenstion in unknown. Allowed extensions are .sdf and .smi !'
 		    );
 		    $modal = $app['session']->set('modal', '');
-		    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+		    return $app->redirect('/moleditor/web/display/'.$dbname);           
 
 		}
 	    }
@@ -292,7 +292,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 		'Upload error !'
 	    );
 	    $modal = $app['session']->set('modal', 'import');
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }
     return $app['twig']->render('import.twig', array(
@@ -319,7 +319,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	    'danger',
 	    'Upload problem, the file does not exit!'
 	);
-	return $app->redirect('/MolEditor/web/');           
+	return $app->redirect('/moleditor/web/');           
     }
     // if file exist, data are parsed and database is hydrated 
     else
@@ -522,7 +522,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 		    'danger',
 		    'Invalid file structure. Please check if it is a correct SDF format !'
 		    );
-		return $app->redirect('/MolEditor/web/');           
+		return $app->redirect('/moleditor/web/');           
 	    }
 
 	    // Alert to inform of renamed tags
@@ -705,7 +705,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	    // delete SDF file after insertion in DB
 	    unlink($path);
 
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);
+	    return $app->redirect('/moleditor/web/display/'.$dbname);
 	}
     }
     
@@ -732,7 +732,7 @@ $app->get('/sort/{dbname}/{sort}/{dir}', function ($dbname, $sort, $dir) use ($a
     $config['sort']=$sort;
     $config['dir']=$dir;
     $app['session']->set('config', $config);
-    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+    return $app->redirect('/moleditor/web/display/'.$dbname);           
 })->bind('sort');
 
 
@@ -746,7 +746,7 @@ $app->get('/page/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
 	$offset=0;
     }
     $app['session']->set('config', $config);
-    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+    return $app->redirect('/moleditor/web/display/'.$dbname);           
 })->bind('page');
 
 
@@ -835,7 +835,7 @@ $app->match('/display/{dbname}/reset-search', function ($dbname) use ($app) {
     $config=$app['session']->get('config');
     $config['clausewhere']='';
     $app['session']->set('config', $config);
-    return $app->redirect('/MolEditor/web/display/'.$dbname);   
+    return $app->redirect('/moleditor/web/display/'.$dbname);   
 })->bind('reset');
 
 
@@ -945,7 +945,7 @@ $app->match('/display/{dbname}/search-by', function ($dbname) use ($app) {
 		$config['clausewhere']=$clausewhere;
 		$app['session']->set('config', $config);
 		
-		return $app->redirect('/MolEditor/web/display/'.$dbname);
+		return $app->redirect('/moleditor/web/display/'.$dbname);
 	    }
 	}
     }  
@@ -1143,11 +1143,11 @@ $app->get('/delete-row/{dbname}/{id}', function ($dbname,$id) use ($app) {
 
     if (isset($offset))
     {
-	return $app->redirect('/MolEditor/web/preview/'.$dbname.'/'.$offset);   
+	return $app->redirect('/moleditor/web/preview/'.$dbname.'/'.$offset);   
     }
     else
     {
-	return $app->redirect('/MolEditor/web/display/'.$dbname);   
+	return $app->redirect('/moleditor/web/display/'.$dbname);   
     }
     
 })->bind('deleteRow');
@@ -1198,11 +1198,11 @@ $app->get('/delete-col/{dbname}/{col_order}', function ($dbname,$col_order) use 
   
     if ($request->isXmlHttpRequest())
     {
-	return $app->redirect('/MolEditor/web/column-management/'.$dbname);   
+	return $app->redirect('/moleditor/web/column-management/'.$dbname);   
     }
     else
     {
-	return $app->redirect('/MolEditor/web/display/'.$dbname);   
+	return $app->redirect('/moleditor/web/display/'.$dbname);   
     }
 })->bind('deleteCol');
 
@@ -1246,7 +1246,7 @@ $app->match('/change-column-type/{dbname}/{alias}', function ($dbname, $alias) u
 	    $req->bindValue(':coltype', $coltype);
 	    $req->execute();
 	//}
-	    return $app->redirect('/MolEditor/web/column-management/'.$dbname);   
+	    return $app->redirect('/moleditor/web/column-management/'.$dbname);   
     }
     
     return $app['twig']->render('colTypeUpdate.twig', array(
@@ -1295,7 +1295,7 @@ $app->get('/move-col/{dbname}/{col_order}/{dir}', function ($dbname, $col_order,
 	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_order=:new_order WHERE column_order=-1'); 
 	$req->bindValue(':new_order', $new_order);
 	$req->execute();
-    return $app->redirect('/MolEditor/web/column-management/'.$dbname);   
+    return $app->redirect('/moleditor/web/column-management/'.$dbname);   
 	
 })->bind('moveCol');
 
@@ -1695,7 +1695,7 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		    'A column named "'.$colname.'" already exists. Please rename it first before adding this descriptor column !'
 		);
 	    }
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }
     return $app['twig']->render('colNewDesc.twig', array(
@@ -1767,7 +1767,7 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 		    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf ADD COLUMN col'.$newalias.' TEXT');
 		}
 	    }
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }
     return $app['twig']->render('colNew.twig', array(
@@ -1963,7 +1963,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 		$sql = 'END TRANSACTION';
 		$app['db']->executeQuery($sql);
 	    }
-    	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+    	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }
     
@@ -2076,7 +2076,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 		}
 	    }
 
-	    return $app->redirect('/MolEditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }
 
@@ -2097,7 +2097,7 @@ $app->match('/check-availability/{dbname}', function ($dbname) use ($app) {
     {
 	$app['session']->set('availability', 1);
     }
-    return $app->redirect('/MolEditor/web/column-management/'.$dbname);           
+    return $app->redirect('/moleditor/web/column-management/'.$dbname);           
 })->bind('check-availability');
 
 

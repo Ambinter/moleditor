@@ -2,7 +2,7 @@
     Options -MultiViews
     
     RewriteEngine On
-    RewriteBase /MolEditor/web
+    RewriteBase /moleditor/web
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [QSA,L]
 </IfModule>

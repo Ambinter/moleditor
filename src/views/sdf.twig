@@ -70,7 +70,7 @@
 					{% endif %}					
 					
 					{% if colhead.name=='structure' %}
-						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span> </a>
+						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span></a>
 						{{ colhead.name }}
 
 					{% else %}
@@ -151,7 +151,7 @@
 </table>
 
 
-<a class="btn btn-danger btn-lg marginb" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
+<a class="btn btn-danger btn-lg marginb marginl" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
 
 <div class="pull-right">
 	<span class="label label-default">{{nbmol}} entries</span>

@@ -4,7 +4,7 @@
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 			<h4 class="modal-title">Update column <strong>{{form.vars.value.colname}}</strong></h4>
 		</div>
-			<form class="" action="/MolEditor/web/column-update/{{dbname}}/col{{column.alias}}" method="POST" name="colupdate">
+			<form class="" action="/moleditor/web/column-update/{{dbname}}/col{{column.alias}}" method="POST" name="colupdate">
 			<div class="modal-body">
 				<div class="form-group">
 					{{ form_label(form.colname, 'Column name') }}	
