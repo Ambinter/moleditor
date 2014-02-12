@@ -6,7 +6,7 @@ What is MolEditor?
 Requirements
 ------------
 
-NOTE : [MolEditor][1] has only be tested on GNU/Linux. It is also optimized for Firefox 25+. 
+NOTE : MolEditor has only be tested on GNU/Linux. It is also optimized for Firefox 25+. 
 
 * MolEditor is based on [Silex][2] Frameword, which supported PHP 5.3.3 and up.
 * You also need to install [openbabel][3] to compute descriptor columns.
@@ -16,7 +16,7 @@ NOTE : [MolEditor][1] has only be tested on GNU/Linux. It is also optimized for 
 Installation
 ------------
 
-Just download MolEditor on your server (see requirements first) and it should work on http://localhost/moleditor
+Just [download MolEditor][1] on your server (see requirements first) and it should work on http://localhost/moleditor
 
 [1]: http://www.ambinter.com/moleditor
 [2]: http://silex.sensiolabs.org
