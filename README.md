@@ -16,7 +16,7 @@ NOTE : MolEditor has only be tested on GNU/Linux. It is also optimized for Firef
 Installation
 ------------
 
-Just [download MolEditor][1] on your server (see requirements first) and it should work on http://localhost/moleditor
+Just download MolEditor on your server (see requirements first) and it should work on http://localhost/moleditor
 
 [1]: http://www.ambinter.com/moleditor
 [2]: http://silex.sensiolabs.org
