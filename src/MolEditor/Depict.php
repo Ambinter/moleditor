@@ -1,5 +1,6 @@
 <?php
 // depict.php
+// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano 
 namespace MolEditor;
 
 Class Depict
@@ -64,7 +65,7 @@ Class Depict
 
 	}
 
-	// SDF to Smiles using indigo-cano
+	// SDF to Smiles using indigo-cano (used for Ambinter availability checking and smiles exportations)
 	public function getSmiles($mol)
 	{
 		$indigo_cano_path = 'cd '.__DIR__.'/../software;';
@@ -73,7 +74,7 @@ Class Depict
 		$f=fopen ($molfile_path.'.mol', 'w+');
 		fputs ($f, $mol);
 		fclose($f);
-		
+		// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano 
 		exec ($indigo_cano_path.' ./indigo-cano_64 '. $molfile_path.'.mol >'.$molfile_path.'.smi');
 		if (is_file($molfile_path.'.smi'))
 		{
