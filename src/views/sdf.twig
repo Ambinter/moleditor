@@ -19,13 +19,13 @@
 
 <div class="col-md-3">
 	
-	<a id="importbutton" class=" btn btn-lg btn-success marginb" data-toggle="modal" href="{{ path ('import', {'dbname': dbname}) }}" data-target="#import"><span class="glyphicon glyphicon-import"></span> Add structures</a>
+	<a id="importbutton" class=" btn btn-success marginb" data-toggle="modal" href="{{ path ('import', {'dbname': dbname}) }}" data-target="#import"><span class="glyphicon glyphicon-plus"></span> Add structures</a>
 
-	<a class="btn btn-sm btn-info marginb" data-toggle="modal" href="{{ path ('colManagement', {'dbname': dbname}) }}" data-target="#colManagement"><span class="glyphicon glyphicon-wrench"></span> Columns</a>
+	<a class="btn btn btn-info marginb" data-toggle="modal" href="{{ path ('colManagement', {'dbname': dbname}) }}" data-target="#colManagement"><span class="glyphicon glyphicon-wrench"></span> Columns</a>
 	
 </div>
 
-<div class="col-md-6">
+<div class="col-md-6 search">
 	{{ render(path('search', {'dbname': dbname})) }}
 </div>
 
@@ -38,14 +38,21 @@
 		{% if pagedown>=0 %}
 			<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
 		{%endif%}
-		{{pageup}} / {{(nbmol/25 //1)+1}}
-		{% if (pageup*25) <= nbmol %}
+		{{pageup}} / {{(nbmol/lim //1)+1}}
+		{% if (pageup*lim) <= nbmol %}
 			<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
 		{%endif%}
-			<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/25 //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+			<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
 	</div>
 
-	<a class="btn btn-info btn-sm pull-right marginb marginr"  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}"><span class="glyphicon glyphicon-th"></span> Thumbnail view</a>
+	<div class="btn-group">
+		<a title="You are in list view" class=" btn btn-info " href="{{ path ('display', {'dbname': dbname}) }}">
+			  <span class=" glyphicon glyphicon-th-list"></span>
+		</a>
+		<a title="Display thumbnail view" class=" btn btn-default "  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}">
+			  <span class="glyphicon glyphicon-th"></span>
+		</a>
+	</div>
 </div>
 
 <hr/>
@@ -159,11 +166,11 @@
 	{% if pagedown>=0 %}
 		<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
 	{%endif%}
-	{{pageup}} / {{(nbmol/25 //1)+1}}
-	{% if (pageup*25) <= nbmol %}
+	{{pageup}} / {{(nbmol/lim //1)+1}}
+	{% if (pageup*lim) <= nbmol %}
 		<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
 	{%endif%}
-		<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/25 //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+		<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
 </div>
 
 

@@ -84,12 +84,7 @@ a {
 	margin-bottom:0;
 }
 
-input[type=search] {
-	border-radius:8px;
-	border-width:0;
-	padding:0.3em 0.5em 0.3em 0.5em ;
-	box-shadow :inset 0px 0px 2px grey;	
-}
+
 
 .form_index label {
 	font-size:1.2em;
@@ -121,6 +116,7 @@ textarea {
 .small {
 	font-size:0.8em;
 }
+
 .large {
 	font-size:1.2em;
 }
@@ -255,4 +251,6 @@ textarea {
 	margin-left:-3.3rem;
 }
 
-
+.btn > span {
+	margin-bottom:0.4em;
+}

@@ -875,7 +875,7 @@ $app->match('/display/{dbname}/search-by', function ($dbname) use ($app) {
     $builder->add('searchtypetext', 'choice', array('choices'=>array('start'=>'Start with', 'contains'=>'Contains', 'end'=>'End with','exact'=>'Exact')));
     
     $builder->add('col', 'choice', array('choices'=>$colselect))
-	->add('search', 'search', array());
+	    ->add('search', 'search', array('attr'=>array('class'=>'input-sm form-control')));
     $formsearch = $builder->getForm();
     
     if ($request->isMethod('POST'))
@@ -983,7 +983,7 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
 	$clausewhere=$config['clausewhere'];
     }
 
-    $lim=25;
+    $lim=10;
     
     $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$dbname.$token.'_columns ORDER BY column_order');
     $columns = array();
@@ -1127,7 +1127,7 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
     }
     
     return $app['twig']->render('sdf.twig', array(
-	'dbname'=>$dbname, 'columns' => $coltab, 'tags'=>$tags, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
+	'dbname'=>$dbname, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
     ));
 })
 ->bind('display');

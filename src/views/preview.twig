@@ -9,7 +9,14 @@
 
 
     <div class=" pull-right">
-	<a class=" btn btn-sm btn-info" href="{{ path ('display', {'dbname': dbname}) }}"><span class="glyphicon glyphicon-th-list"></span> Table view</a>
+    	<div class=" btn-group">
+		<a title="Display List view" class="btn btn-default " href="{{ path ('display', {'dbname': dbname}) }}">
+			  <span class="glyphicon glyphicon-th-list"></span>
+		</a>
+		<a title="You are in thumbnail view" class=" btn btn-info "  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}">
+			  <span class="glyphicon glyphicon-th"></span>
+		</a>
+	</div>
 
 	<span class="label label-default">{{nbmol}} entries</span>
 	<a href="{{ path ('preview', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>

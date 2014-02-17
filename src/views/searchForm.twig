@@ -1,12 +1,24 @@
-<form class="well well-sm text-center form-inline" action="{{path('search', {'dbname':dbname})}}" method="POST" id="formsearch">
-	{{form_widget(formsearch.col, {'id':'coltype' })}}
-	{{form_widget(formsearch.searchtypenumeric, {'attr':{'class':'numeric hide-text'} } ) }}
-	{{form_widget(formsearch.searchtypetext, {'attr':{'class':'text hide-numeric' }}) }}
-	{{form_widget(formsearch.search)}}
-	{{form_rest(formsearch)}}
-	<button type="submit" class="btn btn-sm btn-primary"  name="validsearch"><span class="glyphicon glyphicon-search"></span> Search</button>
-	
-	<a class="btn btn-sm" href="{{ path('reset', {'dbname':dbname}) }}">Reset</a>
+<form class="row well well-sm text-center form-inline" action="{{path('search', {'dbname':dbname})}}" method="POST" id="formsearch">
+	<div class="col-lg-4">
+		<div class="input-group">
+			{{form_widget(formsearch.col, {'id':'coltype' })}}
+			{{form_widget(formsearch.searchtypenumeric, {'attr':{'class':'numeric hide-text'} } ) }}
+			{{form_widget(formsearch.searchtypetext, {'attr':{'class':'text hide-numeric' }}) }}
+		</div>
+	</div>
+	<div class="col-lg-6">
+		<div class="input-group">
+			{{form_widget(formsearch.search)}}
+			<span class="input-group-btn">
+				<button type="input" class="btn btn-sm btn-primary" name="validsearch"><span class="glyphicon glyphicon-search"></span></button>
+			</span>
+		</div>
+		{{form_rest(formsearch)}}
+	</div>
+
+	<div class="col-lg-2">
+		<a class="btn btn-sm" href="{{ path('reset', {'dbname':dbname}) }}">Reset</a>
+	</div>
 </form>
 	<script>
 		$(".numeric").hide();

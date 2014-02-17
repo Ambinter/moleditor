@@ -6509,7 +6509,7 @@ td.visible-lg {
 }
 
 .hidden-xs {
-  display: block !important;
+  display: inline-block !important;
 }
 
 tr.hidden-xs {
