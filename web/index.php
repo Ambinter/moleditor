@@ -823,9 +823,10 @@ $app->get('/preview-one/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	    }
 	}  
     }
+    $offset = $app['request']->get('offset');
 
     return $app['twig']->render('previewOne.twig', array(
-        'dbname'=>$dbname, 'structures' => $structures
+        'dbname'=>$dbname, 'structures' => $structures, 'offset'=>$offset
     ));
 })->bind('previewOne');
 
@@ -1996,10 +1997,14 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	    $struct=$header."\n".$row['structure'];
 	}
 	$datastruct['molstruct']=$struct;
+	$datastruct['offset']=$request->get('offset');
     }
+
+
     $form = $app['form.factory']->createBuilder('form', $datastruct)
         ->add('molstruct', 'hidden', array('attr'=>array('id'=>'molstruct')))
-        ->getForm();
+	->add('offset', 'hidden')
+       ->getForm();
 
     if ($request->isMethod('POST'))
     {
@@ -2008,6 +2013,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
         {
 	    $data = $form->getData();
 	    $newstruct = $data['molstruct'];
+	    $offset = $data['offset'];
 
 	    if ($id=='new')
 	    {
@@ -2075,7 +2081,11 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 		    }
 		}
 	    }
-
+	    if ($offset!='')
+	    {
+		return $app->redirect('/moleditor/web/preview/'.$dbname.'/'.$offset);           
+	    }
+	    
 	    return $app->redirect('/moleditor/web/display/'.$dbname);           
 	}
     }

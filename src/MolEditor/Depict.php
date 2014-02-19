@@ -12,6 +12,16 @@ Class Depict
 	// Depiction management using Indigo tools (from GGAsoftware) 
 	public function getSVG($mol, $type='svg')
 	{
+      // browser detection (fallback for IE<8)
+        if (isset ($_SERVER['HTTP_USER_AGENT']))
+        {
+            $browser = $_SERVER['HTTP_USER_AGENT'];
+            if (preg_match ('/MSIE [6-8]\.0/', $browser) || preg_match ('/Firefox\/[2-3]\.[0-9]/', $browser) || preg_match ('/WebKit\/[4-5]/', $browser))
+            {
+                $type='png';
+            }
+        }
+
 		$indigo_depict_path = 'cd '.__DIR__.'/../software;';
 		$taille=250;
 		$rand=rand(0,10000000);
@@ -28,13 +38,13 @@ Class Depict
 			{
 				$pre_out = file_get_contents($molfile_path.'.'.$type);
 				$pre_out2 = str_replace ('<?xml version="1.0" encoding="UTF-8"?>', '', $pre_out);
-			// add a salt to 'glyph' term in SVG, els def of first structure in the page (color, spacing...) are used for all other molecules, and drawings are incorrects
+			// add a salt to 'glyph' term in SVG, else def of first structure in the page (color, spacing...) are used for all other molecules, and drawings are incorrects
 				$out = preg_replace ('/glyph/', 'glyph'.$rand, $pre_out2);
 				unlink($molfile_path.'.'.$type);
 			}
 			else
 			{
-				$out=$molfile_path.'.'.$type;
+                $out = 'No SVG support';
 			}
 		}
 		else

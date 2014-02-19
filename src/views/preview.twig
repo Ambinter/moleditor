@@ -6,6 +6,8 @@
 </div>
 <div class="modal fade" id="export" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 </div>
+<div class="modal fade" id="ketcher" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
 
 
     <div class=" pull-right">
@@ -34,7 +36,7 @@
 <hr/>
 <div class="row">
 {% for id, val in structures %}
-  <a data-toggle="modal" href="{{ path ('previewOne', {'dbname': dbname, 'id': id}) }}" data-target="#previewOne">
+  <a data-toggle="modal" href="{{ path ('previewOne', {'dbname': dbname, 'id': id, 'offset':offset}) }}" data-target="#previewOne">
       <div class="col-sm-4 col-md-2 ">
 	<div class="thumbnail text-center">
 		{{val.structure|raw}}

@@ -10,6 +10,8 @@
 			{% for key, val in structures %}
 				{% if key=='structure' %}
 					<div class="img-thumbnail">{{val|raw}}</div>
+						<a title="Click to edit structure" class="btn btn-sm btn-primary" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':structures.ID, 'offset':offset }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-pencil"></span> Edit structure</a>
+
 				{% endif %}
 				{% if key=='header' %}
 					<hr/>
