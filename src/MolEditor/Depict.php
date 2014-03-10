@@ -44,7 +44,7 @@ Class Depict
 			}
 			else
 			{
-                $out = 'No SVG support';
+                $out = $molfile_path.'.'.$type;
 			}
 		}
 		else
