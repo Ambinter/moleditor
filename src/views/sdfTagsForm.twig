@@ -1,11 +1,16 @@
-<div class="modal-dialog">
+{% set hidden='' %}
+{% if importExt %}
+	{% set hidden="style=visibility:hidden;" %}
+	<div>Redirection...</div>
+{% endif %}
+<div class="modal-dialog" {{hidden}}>
 	<div class="modal-content">
 		<div class="modal-header">
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 			<h3 class="modal-title">Importation: field selection</h3>
 		</div>
-		<form class="formimport2" action="{{ path('import2', {'dbname':dbname})}}" method="POST" name="form_import2">
-			<div class="modal-body">
+		<form id="formimport2" class="formimport2" action="{{ path('import2', {'dbname':dbname})}}" method="POST" name="form_import2">
+			<div class="modal-body" >
 				{% if nb_mol %}
 					<div class="well">The selected file contains {{nb_mol}} molecules</div>
 					{% if nb_tags>0 %}
@@ -76,5 +81,10 @@
 				<button class="btn btn-success btn-lg" type="submit"><span class="glyphicon glyphicon-save"></span> Import in your base</button>
 			</div>
 			{{form_end(form)}}
+			<script>
+				{% if importExt %}
+					document.form_import2.submit();
+				{% endif %}
+			</script>
 	</div>
 </div>

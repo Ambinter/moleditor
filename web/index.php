@@ -235,6 +235,7 @@ $app->get('/database/delete/{dbname}', function ($dbname) use ($app) {
 // form for file importation
 $app->match('/import/{dbname}', function ($dbname) use ($app) {
     $app['session']->set('config', '');
+    $app['session']->set('import_ext', 0);
     $token = $app['token'];
     $form = $app['form.factory']->createBuilder('form')
         ->add('FileUpload', 'file', array('required'=>true,
@@ -301,7 +302,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 })->bind('import');
 
 // importation from external : file should be send to /src/tmp, then renamed with apropriate token 
-$app->match('/import-external/{dbname}/{filename}', function ($dbname, $filename) use ($app) {
+$app->match('/import-external/{dbname}', function ($dbname) use ($app) {
     $token = $app['token'];
 
     $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_columns ');
@@ -311,13 +312,15 @@ $app->match('/import-external/{dbname}/{filename}', function ($dbname, $filename
     $app['session']->set('modal', 'import');
     
     $path = __DIR__.'/../src/tmp/'. $dbname.$token.'.sdf';
-    rename(__DIR__.'/../src/tmp/'.$filename, $path);
+    rename(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path);
+    $app['session']->set('import_ext', 1);
     return $app->redirect('/moleditor/web/import2/'.$dbname);           
 })->bind('import_ext');
 
 // importation step 2 : get and select tags
 $app->match('/import2/{dbname}', function ($dbname) use ($app) {
     $app['session']->set('config', '');
+    $import_ext=$app['session']->get('import_ext');
     $token = $app['token'];
 
     $request = $app['request'];
@@ -325,7 +328,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
     $nb_mol=0;
     $exist_tag=null;
-
+    
     // error if file does not exist
     if (!is_file($path))
     {
@@ -484,7 +487,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 		    {
 			// si on a coché, on import le tag
 			if ($importTags[$tag]['suppr'])
-			{		
+			{
 			    // rename si on a selectionné un field pré-existant
 			    if ($importTags[$tag]['name'])
 			    {
@@ -706,7 +709,6 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 		{
 		    foreach ($descval as $desc=>$val)
 		    {
-			echo $col_descriptors[$desc];
 			$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET col'.$col_descriptors[$desc].'=:val WHERE ID=:id' );
 			$req->bindValue(':id', $id);
 			$req->bindValue(':val', $val);
@@ -733,7 +735,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
     // display IMPORT2 modal form
     return $app['twig']->render('sdfTagsForm.twig', array(
-        'form' => $form->createView(), 'dbname'=>$dbname, 'nb_mol'=>$nb_mol, 'nb_tags'=>$nb_tags, 'existTags'=>$exist_tag
+        'form' => $form->createView(), 'dbname'=>$dbname, 'nb_mol'=>$nb_mol, 'nb_tags'=>$nb_tags, 'existTags'=>$exist_tag, 'importExt'=>$import_ext
     ));
     
 })->bind('import2');
