@@ -74,7 +74,32 @@ Class Depict
 		return true;    
 
 	}
+	// clean: convert sdf to sdf with indo_depict
+	public function cleanMol($sdf_path)
+	{
+		$indigo_depict_path = 'cd '.__DIR__.'/../software;';
+		if (is_file($sdf_path))
+		{
+			$cleansdf_path = __DIR__.'/../tmp/clean'.basename($sdf_path);
+			exec ($indigo_depict_path.' ./indigo-depict_64 '. $sdf_path.' '.$cleansdf_path);
 
+			if (is_file($cleansdf_path))
+			{
+				$file=file($cleansdf_path);
+				array_shift($file);
+				$sdf='';
+				foreach($file as $line)
+				{
+					$sdf .= $line;
+				}
+				unlink($cleansdf_path);
+				return $sdf;    
+			}
+		}
+		return false;    
+
+	}
+	
 	// SDF to Smiles using indigo-cano (used for Ambinter availability checking and smiles exportations)
 	public function getSmiles($mol)
 	{
@@ -95,4 +120,6 @@ Class Depict
 		return $smiles;  
 
 	}
+
+
 }

@@ -50,4 +50,17 @@ Class Babel
 			return $tabdesc;
 		}
 	}
+
+	public function get3D($input, $type='3D')
+	{
+		$output= __DIR__.'/../tmp/3d'.rand(0,1000000).'.sdf';
+		exec ('obabel '.$input.' -O '. $output.' --gen'.$type);
+		if (file_exists($output))
+		{
+			$sdf=file_get_contents($output);
+			unlink($output);
+			return $sdf;
+		}
+		return false;
+	}
 }

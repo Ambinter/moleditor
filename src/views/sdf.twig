@@ -16,6 +16,8 @@
 </div>
 <div class="modal fade" id="dbconfig" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 </div>
+<div class="modal fade" id="3d" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
 
 <div class="col-md-3">
 	
@@ -128,7 +130,10 @@
 							<input id="newval{{id}}-{{key}}" class="input-sm"  name="newval" type="text" value="{{val|raw}}"/>
 						</form>
 					{% elseif key=='structure' %}
-						<a title="Click to edit structure" class="" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#ketcher">{{val|raw}}</a>
+						<a title="Click to edit structure" class="clearfix" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#ketcher">{{val|raw}}</a>
+						<a title="Clean structure" class=" btn btn-sm btn-link  " href="{{ path('clean', {'dbname':dbname, 'id':tag.ID})}}#{{tag.ID}}"><span class="glyphicon glyphicon-ok-circle"></span> Clean</a>
+						<a title="View 3D structure" class="pull-right marginl btn btn-sm btn-link" data-toggle="modal" href="{{ path ('3d', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#3d">3D</a>
+
 					{% elseif key=='ID'%}
 						<div class="marginb badge">{{val}}</div>
 						<div><br/>
@@ -184,9 +189,16 @@
 		});
 	{% endif %}
 
+	$("form[id^='editform']").focusin(function() {
+			first_val=$(this).value();
+		}
+	);
 	
 	$("form[id^='editform']").focusout(function() {
-			$(this).submit();
+			if(first_val!=$(this).value)
+			{
+				$(this).submit();
+			}
 		}
 	);
 	$('#colManagement').on('hide.bs.modal', function () {

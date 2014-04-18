@@ -82,6 +82,8 @@ $app['babel'] = $app->share(function () {
 $app->match('/', function () use ($app) {
     $app['session']->set('config', '');
     $token = $app['token'];
+
+
     $form = $app['form.factory']->createBuilder('form')
         ->add('dbname', 'text', array('attr'=>array('placeholder'=>'myFirstBase',
 						    'class'=>'input-lg form-control text-info')))
@@ -96,6 +98,8 @@ $app->match('/', function () use ($app) {
         {
             $data = $form->getData();
             $dbname = $data['dbname'];
+	
+	    
 	    // replace spaces in database name 
 	    $dbname = str_replace(' ', '_', $dbname);
 	    
@@ -1990,6 +1994,80 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
     ));
  
 })->bind('colUpdate');
+
+// 3D
+$app->match('/3d/{dbname}/{id}', function ($dbname, $id) use ($app) {
+    $token = $app['token'];
+    $request = $app['request'];
+    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+    $req->bindValue(':id', $id);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$header=$row['header'];
+	$id=$row['ID'];
+	if (!$header)
+	{
+	    $header=$id;
+	}
+	$struct=$header."\n".$row['structure'];
+    }
+    $sdf_path = __DIR__.'/../src/tmp/sdf3d'.$dbname.'_'.$id.$token.'.sdf';
+    $f = fopen ($sdf_path, 'w+');
+    fwrite ($f, $struct);
+    fclose($f);
+    
+    if (file_exists ($sdf_path))
+    {
+	$sdf=$app['babel']->get3D($sdf_path);
+	$sdf= str_replace ("\r", "", trim($sdf));
+	$sdf = str_replace ("\n", "\\n", $sdf);
+
+	
+	unlink($sdf_path);
+    }
+
+    return $app['twig']->render('threeD.twig', array(
+        'dbname'=>$dbname, 'id'=>$id, 'sdf'=>$sdf
+    ));
+})->bind('3d');
+
+
+// Clean a structure
+$app->match('/clean/{dbname}/{id}', function ($dbname, $id) use ($app) {
+    $token = $app['token'];
+    $request = $app['request'];
+    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+    $req->bindValue(':id', $id);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$header=$row['header'];
+	$struct="\n".$row['structure'];
+    }
+    
+    if (isset($struct))
+    {
+	// create a temp SDF
+	$clean_sdf_path = __DIR__.'/../src/tmp/sdfclean'.$dbname.'_'.$id.$token.'.sdf';
+	$f = fopen ($clean_sdf_path, 'w+');
+	fwrite ($f, $struct);
+	fclose($f);
+    }
+    if (is_file($clean_sdf_path))
+    {
+	$sdf_clean = $app['depict']->cleanMol($clean_sdf_path);
+	unlink($clean_sdf_path);
+	// update structure
+	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET structure=:structure WHERE ID=:id' );
+	$req->bindValue(':id', $id);
+	$req->bindValue(':structure', $sdf_clean);
+	//echo 'UPDATE '.$dbname.$token.'_sdf SET structure='.$sdf_clean.' WHERE ID='.$id;exit();
+	$res=$req->execute();
+   }
+    return $app->redirect('/moleditor/web/display/'.$dbname);           
+   
+})->bind('clean');
 
 
 // Sketcher management (draw new or update existing structure)

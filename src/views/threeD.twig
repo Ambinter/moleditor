@@ -1,0 +1,57 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h4 class="modal-title">
+				3D Structure
+			</h4>
+		</div>
+		{% set size=500 %}
+		<div class="modal-body">
+			<div id="load"><span class="glyphicon glyphicon-spin"></span>Loading for 3D (could take few seconds)...</div>
+			<canvas class="ChemDoodleWebComponent" id="chemdoo3D{{id}}" width="{{size}}" height="{{size}}">
+				This browser does not support HTML5/WebGL
+			</canvas>
+			<div class="margint small well well-sm">3D computed with <a href="http://www.openbabel.org">OpenBabel</a> --gen3D option - Structure displayed with <a href="http://web.chemdoodle.com/">ChemDoodle</a> 3D web component</div> 
+		</div>
+		<div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+	</div>
+<script>
+		$('body').on('shown.bs.modal', '.modal', function () {
+			$('#load').show();
+			$('#chemdoo3D{{id}}').css({ opacity: 0.5 });
+		});
+		
+		var sWebGL = ChemDoodle.featureDetection.supports_webgl();
+		if (sWebGL)
+		{
+			var transform = new ChemDoodle.TransformCanvas3D('chemdoo3D{{id}}', {{size}}, {{size}});
+			transform.specs.set3DRepresentation('Stick');
+			transform.specs.bonds_cylinderDiameter_3D = transform.specs.atoms_sphereDiameter_3D = 8;
+		}
+		else
+		{
+			var transform = new ChemDoodle.TransformCanvas('chemdoo3D{{id}}', {{size}}, {{size}}, true);
+			transform.specs.bonds_clearOverlaps_2D = true;
+			transform.specs.bonds_width_2D = 3;
+			transform.specs.atoms_display = false;
+		}
+		transform.specs.bonds_useJMOLColors=true;
+		transform.specs.backgroundColor = 'black';
+		transform.emptyMessage = 'No Data Loaded!';
+		transform.afterLoadContent($('#load').hide());
+		transform.afterLoadContent($('#chemdoo3D{{id}}').css({ opacity: 1 }));
+		var myMolFile = '{{sdf|raw}}';
+		var mol = ChemDoodle.readMOL(myMolFile);
+		transform.loadMolecule(mol);
+
+		$('body').on('hidden.bs.modal', '.modal', function () {
+			transform.clear();
+		});
+</script>
+
+</div>
+
+
