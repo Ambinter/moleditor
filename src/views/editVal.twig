@@ -1,0 +1,19 @@
+<div class="modal-dialog">
+	<div class="modal-content">
+		<form id="formEditVal" class="" action="{{ path('editVal', {'key':key, 'id':id, 'col':col})}}" method="POST" name="colupdate">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+			<h3 class="modal-title">Edit value </h3>
+		</div>
+		<div class="modal-body">
+			{{ form_row(form.value) }}
+		</div>
+		<div class="modal-footer">
+			<input type="submit" class="btn btn-success" value="VALIDATION"/>
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		</div>
+		{{ form_end(form) }}
+	</div>
+	
+	
+</div>
