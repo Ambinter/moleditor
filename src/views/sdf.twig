@@ -12,23 +12,26 @@
 </div>
 <div class="modal fade" id="import2" data-toggle tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 </div>
+<div class="modal fade" id="previewOne" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
 <div class="modal fade" id="ketcher" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 </div>
-<div class="modal fade" id="dbconfig" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-</div>
 <div class="modal fade" id="3d" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="editVal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 </div>
 
 <div class="col-md-3">
 	
-	<a id="importbutton" class=" btn btn-success marginb" data-toggle="modal" href="{{ path ('import', {'dbname': dbname}) }}" data-target="#import"><span class="glyphicon glyphicon-plus"></span> Add structures</a>
+	{% if keytype=='private' %}
+		<a id="importbutton" class=" btn btn-success marginb" data-toggle="modal" href="{{ path ('import', {'key': key}) }}" data-target="#import"><span class="glyphicon glyphicon-plus"></span> Add structures</a>
 
-	<a class="btn btn btn-info marginb" data-toggle="modal" href="{{ path ('colManagement', {'dbname': dbname}) }}" data-target="#colManagement"><span class="glyphicon glyphicon-wrench"></span> Columns</a>
-	
+		<a class="btn btn btn-info marginb" data-toggle="modal" href="{{ path ('colManagement', {'key': key}) }}" data-target="#colManagement"><span class="glyphicon glyphicon-wrench"></span> Columns</a>
+	{% endif %}
 </div>
 
 <div class="col-md-6 search">
-	{{ render(path('search', {'dbname': dbname})) }}
+	{{ render(path('search', {'key': key})) }}
 </div>
 
 <div class="col-md-3">
@@ -36,22 +39,22 @@
 	{% set pagedown = app.session.get('config').offset -1 %}
 	<div class="pull-right">
 		<span class="label label-default">{{nbmol}} entries</span>
-		<a href="{{ path ('page', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+		<a href="{{ path ('page', {'key': key, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
 		{% if pagedown>=0 %}
-			<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+			<a href="{{ path ('page', {'key': key, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
 		{%endif%}
 		{{pageup}} / {{(nbmol/lim //1)+1}}
 		{% if (pageup*lim) <= nbmol %}
-			<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+			<a href="{{ path ('page', {'key': key, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
 		{%endif%}
-			<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+			<a href="{{ path ('page', {'key': key, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
 	</div>
 
 	<div class="btn-group">
-		<a title="You are in list view" class=" btn btn-info " href="{{ path ('display', {'dbname': dbname}) }}">
+		<a title="You are in list view" class=" btn btn-info " href="{{ path ('display', {'key': key}) }}">
 			  <span class=" glyphicon glyphicon-th-list"></span>
 		</a>
-		<a title="Display thumbnail view" class=" btn btn-default "  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}">
+		<a title="Display thumbnail view" class=" btn btn-default "  href="{{ path ('preview', {'key': key, 'offset':0}) }}">
 			  <span class="glyphicon glyphicon-th"></span>
 		</a>
 	</div>
@@ -79,11 +82,11 @@
 					{% endif %}					
 					
 					{% if colhead.name=='structure' %}
-						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span></a>
+						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'key': key, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span></a>
 						{{ colhead.name }}
 
 					{% else %}
-						<a class="" href="{{ path ('sort', {'dbname': dbname, 'sort':colhead.alias, dir: orderby}) }}">
+						<a class="" href="{{ path ('sort', {'key': key, 'sort':colhead.alias, dir: orderby}) }}">
 							{{ colhead.name}}
 						</a>
 					{% endif %}
@@ -94,8 +97,8 @@
 					<span title="{{colhead.coltype}} sort" class="help glyphicon glyphicon-sort-by-{{sorttype}}{{classorderby}}"></span>
 					{% endif %}
 
-					{% if (colhead.name!='ID') and (colhead.name!='structure')%}
-						<a class="pull-right" data-toggle="modal" href="{{ path ('colUpdate', {'dbname': dbname, 'col':colhead.alias }) }}" data-target="#colUpdate"><span class=" glyphicon glyphicon-edit" title="Click to update column"></span></a>
+					{% if (colhead.name!='ID') and (colhead.name!='structure') and (keytype=='private') %}
+						<a class="pull-right" data-toggle="modal" href="{{ path ('colUpdate', {'key': key, 'col':colhead.alias }) }}" data-target="#colUpdate"><span class=" glyphicon glyphicon-edit" title="Click to update column"></span></a>
 					{%endif%}
 				</th>
 			{% endfor %}
@@ -110,35 +113,43 @@
 		{% for id, tag in tags %}
 		<tr>
 
-			{% for key,val in tag %}
+			{% for k,val in tag %}
 				<td>
 					{% set edit=0 %}
 					{% for colhead in columns %}
-						{% if key==colhead.alias and colhead.type=='tag' %}
+						{% if k==colhead.alias and colhead.type=='tag' %}
 							{% set edit=1 %}
 						{% endif %}
 					{% endfor %}
 
-					{% if key == 'header'%}
+					{% if k == 'header'%}
 						{% set edit=1 %}
 					{% endif %}
 					{% if edit==1 %}
 						<a name="{{id}}"></a>
-						<form action="#{{id}}" method="POST" id="editform{{id}}-{{key}}">
-							<input name="id" type="hidden" value="{{id}}"/>
-							<input name="col" type="hidden" value="{{key}}"/>
-							<input id="newval{{id}}-{{key}}" class="input-sm"  name="newval" type="text" value="{{val|raw}}"/>
-						</form>
-					{% elseif key=='structure' %}
-						<a title="Click to edit structure" class="clearfix" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#ketcher">{{val|raw}}</a>
-						<a title="Clean structure" class=" btn btn-sm btn-link  " href="{{ path('clean', {'dbname':dbname, 'id':tag.ID})}}#{{tag.ID}}"><span class="glyphicon glyphicon-ok-circle"></span> Clean</a>
-						<a title="View 3D structure" class="pull-right marginl btn btn-sm btn-link" data-toggle="modal" href="{{ path ('3d', {'dbname': dbname, 'id':tag.ID }) }}" data-target="#3d">3D</a>
+							{#<form action="#{{id}}" method="POST" id="editform{{id}}-{{k}}">
+								<input name="id" type="hidden" value="{{id}}"/>
+								<input name="col" type="hidden" value="{{k}}"/>
+								<input id="newval{{id}}-{{k}}" class="input-sm"  name="newval" type="text" value="{{val|raw}}"/>
+							</form>#}
+							<span id="editVal{{id}}-{{k}}">{{val|raw}}</span>
 
-					{% elseif key=='ID'%}
+						{% if keytype=='private' %}
+							<a  class="pull-right btn-xs btn btn-link marginb" title="Edit cell value" data-toggle="modal" href="{{ path ('editVal', {'key': key, 'id':id, 'col':k}) }}" data-target="#editVal"><span class="glyphicon glyphicon-edit"></span></a>
+						{% endif %}
+					{% elseif k=='structure' %}
+					{#	
+						<a title="Click to edit structure" class="clearfix" data-toggle="modal" href="{{ path ('ketcher', {'key': key, 'id':tag.ID }) }}" data-target="#ketcher">{{val|raw}}</a>
+					#}
+						<a data-toggle="modal" href="{{ path ('previewOne', {'key':key, 'id': id}) }}" data-target="#previewOne">{{val|raw}}</a>
+
+
+					{% elseif k=='ID'%}
 						<div class="marginb badge">{{val}}</div>
 						<div><br/>
-						<a class="" onClick="SuppConfirm('{{ path ('deleteRow', {'dbname': dbname, 'id':id}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
-
+						{% if keytype=='private' %}
+							<a class="" onClick="SuppConfirm('{{ path ('deleteRow', {'key': key, 'id':id}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
+						{% endif %}
 						</div>
 
 					{% else %}
@@ -148,7 +159,7 @@
 			{% endfor %}
 			{% if app.session.get('availability')==1 %}
 				<td class="availability">
-					{{ render_hinclude(path('availability', {'dbname': dbname, 'id':id})) }}
+					{{ render_hinclude(path('availability', {'key': key, 'id':id})) }}
 				</td>
 			{% endif %}
 		</tr>
@@ -163,19 +174,20 @@
 </table>
 
 
-<a class="btn btn-danger btn-lg marginb marginl" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
+<a class="btn btn-danger btn-lg marginb marginl" data-toggle="modal" href="{{ path ('exportModal', {'key': key}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Export base</a> 
+<a title="Create a copy of this database" class="btn btn-primary btn marginb marginl" href="{{ path ('dbcopy', {'key': key}) }}"><span class="glyphicon glyphicon-file"></span> Duplicate base</a> 
 
 <div class="pull-right">
 	<span class="label label-default">{{nbmol}} entries</span>
-	<a href="{{ path ('page', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+	<a href="{{ path ('page', {'key': key, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
 	{% if pagedown>=0 %}
-		<a href="{{ path ('page', {'dbname': dbname, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+		<a href="{{ path ('page', {'key': key, 'offset': pagedown}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
 	{%endif%}
 	{{pageup}} / {{(nbmol/lim //1)+1}}
 	{% if (pageup*lim) <= nbmol %}
-		<a href="{{ path ('page', {'dbname': dbname, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+		<a href="{{ path ('page', {'key': key, 'offset': pageup}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
 	{%endif%}
-		<a href="{{ path ('page', {'dbname': dbname, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+		<a href="{{ path ('page', {'key': key, 'offset': nbmol/lim //1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
 </div>
 
 
@@ -184,12 +196,12 @@
 		$().ready(function(){
 			$('#{{modal}}').modal( {
 				show: true,
-				remote: '{{ path (modal, {'dbname': dbname}) }}'
+				remote: '{{ path (modal, {'key': key}) }}'
 			});
 		});
 	{% endif %}
 
-	$("form[id^='editform']").focusin(function() {
+	{#$("form[id^='editform']").focusin(function() {
 			first_val=$(this).value();
 		}
 	);
@@ -201,6 +213,8 @@
 			}
 		}
 	);
+	#}
+	
 	$('#colManagement').on('hide.bs.modal', function () {
 		location.reload();
 	});

@@ -4,7 +4,7 @@
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 			<h4 class="modal-title">Update column <strong>{{form.vars.value.colname}}</strong></h4>
 		</div>
-			<form class="" action="/moleditor/web/column-update/{{dbname}}/col{{column.alias}}" method="POST" name="colupdate">
+			<form class="" action="/moleditor/web/column-update/{{key}}/col{{column.alias}}" method="POST" name="colupdate">
 			<div class="modal-body">
 				<div class="form-group">
 					{{ form_label(form.colname, 'Column name') }}	
@@ -27,7 +27,7 @@
 			
 			<div class="modal-footer">
 			{% if column.order is defined %}
-				<a class="pull-left btn btn-danger btn-sm" href="{{path('deleteCol', {'dbname':dbname, 'col_order':column.order})}}"><span class="glyphicon glyphicon-trash"></span> Delete this column</a>
+				<a class="pull-left btn btn-danger btn-sm" href="{{path('deleteCol', {'key':key, 'col_order':column.order})}}"><span class="glyphicon glyphicon-trash"></span> Delete this column</a>
 			{% endif %}
 				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 				<button type="submit" class="btn btn-success">Save changes</button>

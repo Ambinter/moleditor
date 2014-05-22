@@ -1,4 +1,4 @@
-<form class="form-inline" action="{{path('newDesc', {'dbname':dbname})}}" method="POST" name="colnew">
+<form class="form-inline" action="{{path('newDesc', {'key':key})}}" method="POST" name="colnew">
     {{ form_label(form.coldesc, 'New descriptor column') }}
     {{ form_widget(form.coldesc) }}
     {{ form_rest(form)}}

@@ -24,6 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Validator\Constraints as Assert;
 use MolEditor\Depict;
 use MolEditor\Babel;
+use MolEditor\Access;
 
 require_once __DIR__.'/../vendor/autoload.php';
 $app = new Silex\Application();
@@ -62,16 +63,15 @@ $app['fragment.renderer.hinclude.global_template'] = 'loading.twig';
 $app->register(new Silex\Provider\SessionServiceProvider());
 $app['session']->start();
 
-// The token is the session ID (you could implement an authentication form instead)
-$app['token'] = $app['session']->getId();
-
-
 // MolEditor specific services for depiction and openbabel use
 $app['depict'] = $app->share(function () {
     return new Depict();
 });
 $app['babel'] = $app->share(function () {
     return new Babel();
+});
+$app['access'] = $app->share(function ($app) {
+    return new Access($app);
 });
 
 
@@ -81,8 +81,9 @@ $app['babel'] = $app->share(function () {
 // form for database creation
 $app->match('/', function () use ($app) {
     $app['session']->set('config', '');
-    $token = $app['token'];
 
+    // creation (if not exists yet) of user_table which contains all created table names with session infos, public_address and user id
+    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS user_db (dbname VARCHAR(100), hash VARCHAR(255), private VARCHAR(255), public VARCHAR(255), session VARCHAR(255), username_id INT)');
 
     $form = $app['form.factory']->createBuilder('form')
         ->add('dbname', 'text', array('attr'=>array('placeholder'=>'myFirstBase',
@@ -98,29 +99,27 @@ $app->match('/', function () use ($app) {
         {
             $data = $form->getData();
             $dbname = $data['dbname'];
-	
-	    
-	    // replace spaces in database name 
-	    $dbname = str_replace(' ', '_', $dbname);
-	    
-	    // error if database name start with a digit
-	    if (preg_match('/^[0-9]/', $dbname))
-	    {
-		$app['session']->getFlashBag()->add(
-		    'danger',
-		    'Invalid work name '.$dbname.'. Please do not start it with a number !'
-		);
-		return $app->redirect('/moleditor/web/');
-	    }
+	    $hash= 'ME'.hash('sha256', $dbname.rand(0,100000));
+	    $private=hash('adler32', $hash.rand(0,100000));
+
 
 	    // requests for database creation
-	    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_columns ');
-	    $results = $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_columns (column_name TEXT, column_order INT, alias INT, type VARCHAR(20), coltype VARCHAR(20))');
-	    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_sdf ');
-	    $results = $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
+	    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$hash.'_columns ');
+	    $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_columns (column_name TEXT, column_order INT, alias INT, type VARCHAR(20), coltype VARCHAR(20))');
+	    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$hash.'_sdf ');
+	    $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
+
+	    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+	    $req->bindValue(':hash', $hash);
+	    $req->bindValue(':private', $private);
+	    $req->bindValue(':public', '');
+	    $req->bindValue(':session', $app['session']->getId());
+	    $req->bindValue(':dbname', $dbname);
+	    $req->execute();
+
 	    $app['session']->set('modal', 'import');
 	    
-	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$private);           
 	    
         }
     }
@@ -130,19 +129,30 @@ $app->match('/', function () use ($app) {
 })->bind('index');
 
 
+// get dbname from hash
+$app->match('/dbname/{key}', function ($key) use ($app) {
+
+    $hash=$app['access']->getHash($key);
+    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$dbname=$row['dbname'];
+    }
+    return $app['twig']->render('dbname.twig', array('dbname'=>$dbname));
+})->bind('dbname');
+
+
 // List of current database of user (displayed in header navbar)
 $app->match('/db/list', function () use ($app) {
-    $token = $app['token'];
-    $req = $app['db']->prepare('SELECT name FROM sqlite_master WHERE name like :token ORDER BY name');
-    $req->bindValue(':token', '%'.$token.'%');
+    $req = $app['db']->prepare('SELECT dbname, private FROM user_db WHERE session=:session ORDER BY dbname');
+    $req->bindValue(':session', $app['session']->getId());
     $res=$req->execute();
     $dbs='';
     while ($row = $req->fetch(PDO::FETCH_ASSOC))
     {
-	$db=str_replace($token, '', $row['name']);
-	$db=str_replace('_columns', '', $db);
-	$db=str_replace('_sdf', '', $db);
-	$dbs[$db]=$db;
+	$dbs[]=array('dbname'=>$row['dbname'], 'key'=>$row['private']);
     }
     return $app['twig']->render('listDB.twig', array('dbs'=>$dbs));
 })->bind('listDB');
@@ -150,13 +160,22 @@ $app->match('/db/list', function () use ($app) {
 
 
 // Database configuration (rename/delete)
-$app->match('/database/config/{dbname}', function ($dbname) use ($app) {
+$app->match('/database/config/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
     $app['session']->set('config', '');
-    $token = $app['token'];
+
+    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$dbname=$row['dbname'];
+    }
+
     $formdata['dbname']=$dbname;
     $form = $app['form.factory']->createBuilder('form', $formdata)
     ->add('dbname', 'text', array('required'=>true,
-				    'attr'=>array('class'=>' '),
+				    'attr'=>array('class'=>'form-control'),
 				    'label'=>'New database name'
 				    )
 	)
@@ -170,30 +189,16 @@ $app->match('/database/config/{dbname}', function ($dbname) use ($app) {
             $data = $form->getData();
 	    $new_dbname=$data['dbname'];
 
-	// replace spaces in new database name
-	    $new_dbname = str_replace(' ', '_', $new_dbname);
-
-	// error if new database name start with a digit
-	    if (preg_match('/^[0-9]/', $new_dbname))
-	    {
-		$app['session']->getFlashBag()->add(
-		    'danger',
-		    'Invalid name '.$new_dbname.'. Please do not start it with a number !'
-		);
-		return $app->redirect('/moleditor/web/display/'.$dbname);
-	    }
+	
 	    
 	// check if name did not exist yet
-	    $req = $app['db']->prepare('SELECT name FROM sqlite_master WHERE name like :token ORDER BY name');
-	    $req->bindValue(':token', '%'.$token.'%');
+	    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE session=:session');
+	    $req->bindValue(':session', $app['session']->getId());
 	    $res=$req->execute();
 	    $dbs='';
 	    while ($row = $req->fetch(PDO::FETCH_ASSOC))
 	    {
-		$db=str_replace($token, '', $row['name']);
-		$db=str_replace('_columns', '', $db);
-		$db=str_replace('_sdf', '', $db);
-		$dbs[$db]=$db;
+		$dbs[$dbname]=$dbname;
 	    }
 	    if (in_array($new_dbname, $dbs))
 	    {
@@ -201,35 +206,42 @@ $app->match('/database/config/{dbname}', function ($dbname) use ($app) {
 		    'danger',
 		    'The database name '.$new_dbname.' already exist, please choose another one !'
 		);
-		return $app->redirect('/moleditor/web/display/'.$dbname);
+		return $app->redirect('/moleditor/web/display/'.$key);
 	    }
 
 	// request for updating database name
-	    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_columns RENAME TO '.$new_dbname.$token.'_columns');
-	    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf RENAME TO '.$new_dbname.$token.'_sdf');
+	    $req = $app['db']->prepare('UPDATE user_db SET dbname=:dbname WHERE hash=:hash');
+	    $req->bindValue(':hash', $hash);
+	    $req->bindValue(':dbname', $new_dbname);
+	    $res=$req->execute();
 
 	    $app['session']->getFlashBag()->add(
 		'success',
 		'The database "'.$dbname.'" has been successfully renamed in "'.$new_dbname.'"!'
 	    );
-	    return $app->redirect('/moleditor/web/display/'.$new_dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
     return $app['twig']->render('dbConfig.twig', array(
-        'form' => $form->createView(), 'dbname'=>$dbname
+        'form' => $form->createView(), 'key'=>$key
     ));
 
 })->bind('dbConfig');
 
 
 // delete database
-$app->get('/database/delete/{dbname}', function ($dbname) use ($app) {
-    $token = $app['token'];
-    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_columns ');
-    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_sdf ');
+$app->get('/database/{key}/delete', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key, 'privateOnly');
+
+    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$hash.'_columns ');
+    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$hash.'_sdf ');
+    $req = $app['db']->prepare('DELETE FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $req->execute();
+    
     $app['session']->getFlashBag()->add(
 	'success',
-	'The database '.$dbname.' has been deleted !'
+	'The database has been deleted !'
     );
    return $app->redirect('/moleditor/web/');           
 
@@ -237,10 +249,12 @@ $app->get('/database/delete/{dbname}', function ($dbname) use ($app) {
 
 
 // form for file importation
-$app->match('/import/{dbname}', function ($dbname) use ($app) {
+$app->match('/import/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+
     $app['session']->set('config', '');
     $app['session']->set('import_ext', 0);
-    $token = $app['token'];
     $form = $app['form.factory']->createBuilder('form')
         ->add('FileUpload', 'file', array('required'=>true,
 					  'attr'=>array('class'=>'')
@@ -264,7 +278,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 	    {
 		$path = __DIR__.'/../src/tmp/';
 		$extension = strtolower($files['FileUpload']->getClientOriginalExtension());
-		$filename = $dbname.$token;
+		$filename = $hash;
 
 		// file extension checking (only sdf or smiles are allowed)
 		if(in_array($extension, array('sdf', 'smi')))
@@ -275,7 +289,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 			$app['depict']->convertSmilesFileToSdfFile($path.$filename.'.'.$extension);	
 		    }
 		    $modal = $app['session']->set('modal', 'import2');
-		    return $app->redirect('/moleditor/web/display/'.$dbname);           
+		    return $app->redirect('/moleditor/web/display/'.$key);           
 		}
 		else
 		{
@@ -284,7 +298,7 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 			'Importation error: The file extenstion in unknown. Allowed extensions are .sdf and .smi !'
 		    );
 		    $modal = $app['session']->set('modal', '');
-		    return $app->redirect('/moleditor/web/display/'.$dbname);           
+		    return $app->redirect('/moleditor/web/display/'.$key);           
 
 		}
 	    }
@@ -297,38 +311,44 @@ $app->match('/import/{dbname}', function ($dbname) use ($app) {
 		'Upload error !'
 	    );
 	    $modal = $app['session']->set('modal', 'import');
-	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
     return $app['twig']->render('import.twig', array(
-        'form' => $form->createView(), 'dbname'=>$dbname
+        'form' => $form->createView(), 'key'=>$key, 'keytype'=>$keytype
     ));
 })->bind('import');
 
-// importation from external : file should be send to /src/tmp, then renamed with apropriate token 
+// importation from external : file should be send to /src/tmp, then renamed with apropriate name
 $app->match('/import-external/{dbname}', function ($dbname) use ($app) {
-    $token = $app['token'];
 
-    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_columns ');
-    $results = $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_columns (column_name TEXT, column_order INT, alias INT, type VARCHAR(20), coltype VARCHAR(20))');
-    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$dbname.$token.'_sdf ');
-    $results = $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
+    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+    $hash= 'ME'.hash('sha256', $dbname.rand(0,100000));
+    $private=hash('adler32', $hash.rand(0,100000));
+    $req->bindValue(':hash', $hash);
+    $req->bindValue(':private', $private);
+    $req->bindValue(':public', '');
+    $req->bindValue(':session', $app['session']->getId());
+    $req->bindValue(':dbname', $dbname);
+    $req->execute();
+    $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_columns (column_name TEXT, column_order INT, alias INT, type VARCHAR(20), coltype VARCHAR(20))');
+    $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
     $app['session']->set('modal', 'import');
     
-    $path = __DIR__.'/../src/tmp/'. $dbname.$token.'.sdf';
+    $path = __DIR__.'/../src/tmp/'. $dbname.'.sdf';
     rename(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path);
     $app['session']->set('import_ext', 1);
-    return $app->redirect('/moleditor/web/import2/'.$dbname);           
+    return $app->redirect('/moleditor/web/import2/'.$private);           
 })->bind('import_ext');
 
 // importation step 2 : get and select tags
-$app->match('/import2/{dbname}', function ($dbname) use ($app) {
+$app->match('/import2/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
     $app['session']->set('config', '');
     $import_ext=$app['session']->get('import_ext');
-    $token = $app['token'];
 
     $request = $app['request'];
-    $path = __DIR__.'/../src/tmp/'. $dbname.$token.'.sdf';
+    $path = __DIR__.'/../src/tmp/'. $hash.'.sdf';
 
     $nb_mol=0;
     $exist_tag=null;
@@ -373,7 +393,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	}
 	
 	//get existing tag in database (when it is not the first file import in the DB)
-	$res = $app['db']->executeQuery('SELECT alias, column_name FROM '.$dbname.$token.'_columns WHERE type="tag"');
+	$res = $app['db']->executeQuery('SELECT alias, column_name FROM '.$hash.'_columns WHERE type="tag"');
 	foreach($res as $result)
 	{
 	    $colname=$result['column_name'];
@@ -419,7 +439,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	    $i=0;
 
 	// rename tag with name already in database in "name_2", "name_3"...
-	    $res = $app['db']->executeQuery('SELECT alias, column_name FROM '.$dbname.$token.'_columns WHERE type="tag"');
+	    $res = $app['db']->executeQuery('SELECT alias, column_name FROM '.$hash.'_columns WHERE type="tag"');
 	    foreach($res as $result)
 	    {
 		$colname=$result['column_name'];
@@ -575,7 +595,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
 	// Hydrate colums
 	    $i=0;
-	    $req = $app['db']->executeQuery('SELECT * FROM '.$dbname.$token.'_columns');
+	    $req = $app['db']->executeQuery('SELECT * FROM '.$hash.'_columns');
 	    $result = $req->fetchAll();
 	    $insert_columns=$columns;
 	    if ($result)
@@ -598,7 +618,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	// column name are inserted in column table
 	    if (isset ($insert_columns))
 	    {
-		$req = $app['db']->prepare('INSERT INTO '.$dbname.$token.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias,:type,:coltype)');
+		$req = $app['db']->prepare('INSERT INTO '.$hash.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias,:type,:coltype)');
 		if (isset ($aliases))
 		{
 		    $maxalias=max($aliases)+1;
@@ -621,13 +641,13 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 		{
 		    foreach($alter_tab as $al)
 		    {
-			$app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf ADD COLUMN col'.$al.' TEXT');
+			$app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf ADD COLUMN col'.$al.' TEXT');
 		    }
 		}
 	    }
 
 	    // get column list after column table update
-	    $req = $app['db']->executeQuery('SELECT * FROM '.$dbname.$token.'_columns WHERE type="tag"');
+	    $req = $app['db']->executeQuery('SELECT * FROM '.$hash.'_columns WHERE type="tag"');
 	    $result = $req->fetchAll();
 	    if ($result)
 	    {
@@ -654,7 +674,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
 	    foreach ($tab as $k=>$v)
 	    {
-		$req = $app['db']->prepare('INSERT INTO '.$dbname.$token.'_sdf (structure, header '. $addfields .') VALUES (:structure, :header'. $addvars.')');
+		$req = $app['db']->prepare('INSERT INTO '.$hash.'_sdf (structure, header '. $addfields .') VALUES (:structure, :header'. $addvars.')');
 		$req->bindValue(':structure', $tab[$k]["structure"]);
 		$req->bindValue(':header', $tab[$k]["header"]);
 		if (isset ($table_colnames))
@@ -675,7 +695,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	   }
 
 	// update of exsisting descriptors type columns after a new insertion
-	    $req=$app['db']->executeQuery('SELECT column_name, alias FROM '.$dbname.$token.'_columns WHERE type="descriptor"');
+	    $req=$app['db']->executeQuery('SELECT column_name, alias FROM '.$hash.'_columns WHERE type="descriptor"');
 	    $res = $req->fetchAll();
 	    foreach ($res as $val)
 	    {
@@ -687,7 +707,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	    // existing descriptors are re-computed
 	    if (isset($descriptors))
 	    {
-		$req=$app['db']->executeQuery('SELECT ID, structure FROM '.$dbname.$token.'_sdf');
+		$req=$app['db']->executeQuery('SELECT ID, structure FROM '.$hash.'_sdf');
 		$sdf='';
 		while ($tab = $req->fetch(PDO::FETCH_ASSOC))
 		{
@@ -699,7 +719,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
 	    // Descriptors computation
 		// creation of temporary SDF file
-		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$dbname.$token.'.sdf';
+		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$hash.'.sdf';
 		$f = fopen ($desc_sdf_path, 'w+');
 		fwrite ($f, $sdf);
 		fclose($f);
@@ -713,7 +733,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 		{
 		    foreach ($descval as $desc=>$val)
 		    {
-			$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET col'.$col_descriptors[$desc].'=:val WHERE ID=:id' );
+			$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET col'.$col_descriptors[$desc].'=:val WHERE ID=:id' );
 			$req->bindValue(':id', $id);
 			$req->bindValue(':val', $val);
 			$req->execute();
@@ -725,7 +745,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 	    // delete SDF file after insertion in DB
 	    unlink($path);
 
-	    return $app->redirect('/moleditor/web/display/'.$dbname);
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
     
@@ -739,7 +759,7 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
     // display IMPORT2 modal form
     return $app['twig']->render('sdfTagsForm.twig', array(
-        'form' => $form->createView(), 'dbname'=>$dbname, 'nb_mol'=>$nb_mol, 'nb_tags'=>$nb_tags, 'existTags'=>$exist_tag, 'importExt'=>$import_ext
+        'form' => $form->createView(), 'key'=>$key, 'nb_mol'=>$nb_mol, 'nb_tags'=>$nb_tags, 'existTags'=>$exist_tag, 'importExt'=>$import_ext
     ));
     
 })->bind('import2');
@@ -747,18 +767,18 @@ $app->match('/import2/{dbname}', function ($dbname) use ($app) {
 
 
 // Table sort 
-$app->get('/sort/{dbname}/{sort}/{dir}', function ($dbname, $sort, $dir) use ($app) {
+$app->get('/sort/{key}/{sort}/{dir}', function ($key, $sort, $dir) use ($app) {
     $config=$app['session']->get('config');
     $config['sort']=$sort;
     $config['dir']=$dir;
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$dbname);           
+    return $app->redirect('/moleditor/web/display/'.$key);           
 })->bind('sort');
 
 
 
 //pagination
-$app->get('/page/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
+$app->get('/page/{key}/{offset}', function ($key, $offset) use ($app) {
     $config=$app['session']->get('config');
     $config['offset']=$offset;
     if ($offset<=0)
@@ -766,16 +786,18 @@ $app->get('/page/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
 	$offset=0;
     }
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$dbname);           
+    return $app->redirect('/moleditor/web/display/'.$key);           
 })->bind('page');
 
 
 
 // thumbnail view 
-$app->get('/preview/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
+$app->get('/preview/{key}/{offset}', function ($key, $offset) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+
     $app['session']->set('config', null);
-    $token = $app['token'];
-    $result = $app['db']->fetchAll('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf LIMIT '.($offset*200) .', 200');
+    $result = $app['db']->fetchAll('SELECT ID, structure, header FROM '.$hash.'_sdf LIMIT '.($offset*200) .', 200');
     $structures='';
     foreach ($result as $row)
     {
@@ -788,7 +810,7 @@ $app->get('/preview/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
 	$id = $row['ID'];
 	$structures[$id] = array('header'=>$header, 'structure'=>$app['depict']->getSVG($header."\n".$structure));  
     }
-    $res = $app['db']->fetchAll('SELECT count(*) nb FROM '.$dbname.$token.'_sdf');
+    $res = $app['db']->fetchAll('SELECT count(*) nb FROM '.$hash.'_sdf');
     $nbmol=0;
     foreach ($res as $row)
     {
@@ -796,41 +818,43 @@ $app->get('/preview/{dbname}/{offset}', function ($dbname, $offset) use ($app) {
     }
     
     return $app['twig']->render('preview.twig', array(
-        'dbname'=>$dbname, 'structures' => $structures, 'offset'=>$offset, 'nbmol'=>$nbmol
+        'key'=>$key , 'keytype'=>$keytype, 'structures' => $structures, 'offset'=>$offset, 'nbmol'=>$nbmol
     ));
 })->bind('preview');
 
 
 
 //preview one mol (in thumbnail view)
-$app->get('/preview-one/{dbname}/{id}', function ($dbname, $id) use ($app) {
+$app->get('/preview-one/{key}/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
     $app['session']->set('config', null);
-    $token = $app['token'];
-    $req = $app['db']->prepare('SELECT * FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+
+    $req = $app['db']->prepare('SELECT * FROM '.$hash.'_sdf WHERE ID=:id');
     $req->bindValue(':id', $id);
     $req->execute();
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
-	foreach ($tab as $key=>$val)
+	foreach ($tab as $k=>$val)
 	{
 	    $tag='';
-	    if ($key=='ID')
+	    if ($k=='ID')
 	    {
 		$tag='ID';
 	    }
-	    elseif ($key=='header')
+	    elseif ($k=='header')
 	    {		
 		$tag='header';
 	    }
-	    elseif ($key=='structure')
+	    elseif ($k=='structure')
 	    {
 		$val= $app['depict']->getSVG("header\n".$val);
 		$tag='structure';
 	    }
 	    else
 	    {
-		$reqc = $app['db']->prepare('SELECT column_name FROM '.$dbname.$token.'_columns WHERE alias=:colnum');
-		$reqc->bindValue(':colnum', str_replace('col', '', $key));
+		$reqc = $app['db']->prepare('SELECT column_name FROM '.$hash.'_columns WHERE alias=:colnum');
+		$reqc->bindValue(':colnum', str_replace('col', '', $k));
 		$resc=$reqc->execute();
 		while ($row = $reqc->fetch(PDO::FETCH_ASSOC))
 		{
@@ -846,26 +870,26 @@ $app->get('/preview-one/{dbname}/{id}', function ($dbname, $id) use ($app) {
     $offset = $app['request']->get('offset');
 
     return $app['twig']->render('previewOne.twig', array(
-        'dbname'=>$dbname, 'structures' => $structures, 'offset'=>$offset
+        'key'=>$key, 'keytype'=>$keytype, 'structures' => $structures, 'offset'=>$offset
     ));
 })->bind('previewOne');
 
 
 // Search reset
-$app->match('/display/{dbname}/reset-search', function ($dbname) use ($app) {
+$app->match('/reset-search/{key}', function ($key) use ($app) {
     $config=$app['session']->get('config');
     $config['clausewhere']='';
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$dbname);   
+    return $app->redirect('/moleditor/web/display/'.$key);   
 })->bind('reset');
 
 
 // Search form
-$app->match('/display/{dbname}/search-by', function ($dbname) use ($app) {
+$app->match('/search-by/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
     $config=$app['session']->get('config');
 
-    $token = $app['token'];
-    $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$dbname.$token.'_columns ORDER BY column_order');
+    $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$hash.'_columns ORDER BY column_order');
     
     $colselect['header']='header';
     $tabcoltype['header']='text';
@@ -893,7 +917,7 @@ $app->match('/display/{dbname}/search-by', function ($dbname) use ($app) {
     // form (dynamic according to column type, numeric or text)
     $builder = $app['form.factory']->createBuilder('form', $datasearch);
     $builder->add('searchtypenumeric', 'choice', array('choices'=>array('sup'=>'>', 'supe'=>'>=', 'exact'=>'=','infe'=>'<=', 'inf'=>'<')));
-    $builder->add('searchtypetext', 'choice', array('choices'=>array('start'=>'Start with', 'contains'=>'Contains', 'end'=>'End with','exact'=>'Exact')));
+    $builder->add('searchtypetext', 'choice', array('choices'=>array('start'=>'Start with', 'contain'=>'Contain', 'end'=>'End with','exact'=>'Exact')));
     
     $builder->add('col', 'choice', array('choices'=>$colselect))
 	    ->add('search', 'search', array('attr'=>array('class'=>'input-sm form-control')));
@@ -966,23 +990,130 @@ $app->match('/display/{dbname}/search-by', function ($dbname) use ($app) {
 		$config['clausewhere']=$clausewhere;
 		$app['session']->set('config', $config);
 		
-		return $app->redirect('/moleditor/web/display/'.$dbname);
+		return $app->redirect('/moleditor/web/display/'.$key);
 	    }
 	}
     }  
 
     return $app['twig']->render('searchForm.twig', array(
-        'dbname'=>$dbname, 'coltypes'=>$tabcoltype, 'formsearch'=>$formsearch->createView()
+        'key'=>$key, 'coltypes'=>$tabcoltype, 'formsearch'=>$formsearch->createView()
     ));
 
 })->bind('search');
 
 
+// Modal to get public link
+$app->match('/share/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $public='';
+    $req = $app['db']->prepare('SELECT public, private FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$private=$row['private'];
+	$public=$row['public'];
+    }
+    $is_public=1;
+    if (!$public)
+    {
+	$is_public=0;
+	$public=hash('adler32', $hash);
+    }
+    $formData['publicLink']=$_SERVER['SERVER_NAME'].'/moleditor/web/display/'.$public;
+    $formData['privateLink']=$_SERVER['SERVER_NAME'].'/moleditor/web/display/'.$private;
+    $form = $app['form.factory']->createBuilder('form', $formData)
+        ->add('publicLink', 'text', array('required'=>true,
+					  'attr'=>array('class'=>'form-control')
+					)
+	    )
+        ->add('privateLink', 'text', array('required'=>true,
+					  'attr'=>array('class'=>'form-control')
+					)
+	    )
+        ->getForm();
+
+    return $app['twig']->render('share.twig', array(
+	'form'=>$form->createView(), 'key'=>$key, 'public'=>$public, 'private'=>$private, 'is_public'=>$is_public
+    ));
+})->bind('share');
+
+// Make public
+$app->match('/make-public/{key}/{is_public}', function ($key, $is_public) use ($app) {
+    $hash=$app['access']->getHash($key);
+    if (!$is_public)
+    {
+	$public=hash('adler32', $hash);
+    }
+    else
+    {
+	$public='';
+    }
+    $req = $app['db']->prepare('UPDATE user_db SET public=:public WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $req->bindValue(':public', $public);
+    $res=$req->execute();
+
+    return $app->redirect('/moleditor/web/share/'.$key);
+    
+})->bind('make-public');
+
+// one cell update
+$app->match('/edit-val/{key}/{id}/{col}', function ($key, $id, $col) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $value='';
+    $req = $app['db']->prepare('SELECT '.$col. ' FROM '.$hash.'_sdf WHERE id=:id');
+    $req->bindValue(':id', $id);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+        $value= $row[$col];
+    }
+    
+    $formdata['value']=$value;
+    $form = $app['form.factory']->createBuilder('form', $formdata)
+	->add('value', 'text', array( 'attr'=>array('class'=>'form-control'),
+					)
+	    )
+    ->getForm();
+    $request = $app['request'];
+    if ($request->isMethod('POST'))
+    {
+	$form->bind($request);
+	if ($form->isValid())
+	{
+	    if ($id && $col)
+	    {
+		$data=$form->getData();
+		$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET '.$col.'=:newval WHERE id=:id');
+		$req->bindValue(':id', $id);
+		$req->bindValue(':newval', $data['value']);
+		$res=$req->execute();
+		return $app->redirect('/moleditor/web/display/'.$key.'#'.$id);
+	    }
+	}
+    }
+
+  
+    return $app['twig']->render('editVal.twig', array(
+	'key'=>$key, 'form'=>$form->createView(), 'id'=>$id, 'col'=>$col
+    ));
+})
+->bind('editVal');
 
 // Database display (in HTML Table)
-$app->match('/display/{dbname}', function ($dbname) use ($app) {
-    $token = $app['token'];
+$app->match('/display/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
 
+    if (!$hash)
+    {
+	$app['session']->getFlashBag()->add(
+	    'danger',
+	    'You have not access to this database !'
+	    );
+	return $app->redirect('/moleditor/web/');           
+    }
     // Session variable initialization
     if ($app['session']->get('config') === null)
     {
@@ -1006,7 +1137,7 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
 
     $lim=10;
     
-    $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$dbname.$token.'_columns ORDER BY column_order');
+    $result = $app['db']->fetchAll('SELECT column_name, alias, column_order, type, coltype FROM '.$hash.'_columns ORDER BY column_order');
     $columns = array();
     $alias = array();
 
@@ -1033,20 +1164,20 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
 
     $request = $app['request'];
 
-    // if one cell update
-    if ($request->isMethod('POST'))
-    {
-	$id=$request->get('id');
-	$col=$request->get('col');
-	if ($id && $col)
-	{
-	    $newval=$request->get('newval');
-	    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET '.$col.'=:newval WHERE id=:id');
-	    $req->bindValue(':id', ($id));
-	    $req->bindValue(':newval', $newval);
-	    $res=$req->execute();
-	}
-    }
+    //// if one cell update
+    //if ($request->isMethod('POST'))
+    //{
+	//$id=$request->get('id');
+	//$col=$request->get('col');
+	//if ($id && $col)
+	//{
+	    //$newval=$request->get('newval');
+	    //$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET '.$col.'=:newval WHERE id=:id');
+	    //$req->bindValue(':id', ($id));
+	    //$req->bindValue(':newval', $newval);
+	    //$res=$req->execute();
+	//}
+    //}
 
     // Session variables management (before search)
     if (!isset($config['offset']))
@@ -1078,7 +1209,7 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
 
 
     $i=0;
-    $res = $app['db']->fetchAll('SELECT count(*) nb FROM '.$dbname.$token.'_sdf '.$clausewhere);
+    $res = $app['db']->fetchAll('SELECT count(*) nb FROM '.$hash.'_sdf '.$clausewhere);
     $nbmol=0;
     foreach ($res as $row)
     {
@@ -1106,7 +1237,7 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
 	    $orderby=$sort;
 	}
     }
-    $req = $app['db']->prepare('SELECT ID, structure, header '.$add_col.' FROM '.$dbname.$token.'_sdf '.$clausewhere.' ORDER BY '. $orderby.' '. $dir.' LIMIT :offset, :limit');
+    $req = $app['db']->prepare('SELECT ID, structure, header '.$add_col.' FROM '.$hash.'_sdf '.$clausewhere.' ORDER BY '. $orderby.' '. $dir.' LIMIT :offset, :limit');
     $req->bindValue(':limit', ($lim));
     $req->bindValue(':offset', $offset*$lim);
 
@@ -1148,39 +1279,39 @@ $app->match('/display/{dbname}', function ($dbname) use ($app) {
     }
     
     return $app['twig']->render('sdf.twig', array(
-	'dbname'=>$dbname, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
+	'key'=>$key, 'keytype'=>$keytype, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
     ));
 })
 ->bind('display');
 
 
 // Delete a line 
-$app->get('/delete-row/{dbname}/{id}', function ($dbname,$id) use ($app) {
-    $token = $app['token'];
-    $req = $app['db']->prepare('DELETE FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+$app->get('/delete-row/{key}/{id}', function ($key,$id) use ($app) {
+    $hash=$app['access']->getHash($key, 'privateOnly');
+    $req = $app['db']->prepare('DELETE FROM '.$hash.'_sdf WHERE ID=:id');
     $req->bindValue(':id',$id);					
     $req->execute();
     $offset = $app['request']->get('offset');
 
     if (isset($offset))
     {
-	return $app->redirect('/moleditor/web/preview/'.$dbname.'/'.$offset);   
+	return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);   
     }
     else
     {
-	return $app->redirect('/moleditor/web/display/'.$dbname.'#'.$id);   
+	return $app->redirect('/moleditor/web/display/'.$key.'#'.$id);   
     }
     
 })->bind('deleteRow');
 
 
 // Delete a column    
-$app->get('/delete-col/{dbname}/{col_order}', function ($dbname,$col_order) use ($app) {
-    $token = $app['token'];
+$app->get('/delete-col/{key}/{col_order}', function ($key, $col_order) use ($app) {
+    $hash=$app['access']->getHash($key, 'privateOnly');
     $request = $app['request'];
     
     // get alias
-    $req = $app['db']->prepare('SELECT alias FROM '.$dbname.$token.'_columns WHERE column_order=:col_order'); 
+    $req = $app['db']->prepare('SELECT alias FROM '.$hash.'_columns WHERE column_order=:col_order'); 
     $req->bindValue(':col_order', $col_order);
     $req->execute();
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
@@ -1189,14 +1320,14 @@ $app->get('/delete-col/{dbname}/{col_order}', function ($dbname,$col_order) use 
     }   
     
     // delete corresponding line in table column
-    $req = $app['db']->prepare('DELETE FROM '.$dbname.$token.'_columns WHERE column_order=:col_order'); 
+    $req = $app['db']->prepare('DELETE FROM '.$hash.'_columns WHERE column_order=:col_order'); 
     $req->bindValue(':col_order', $col_order);
     $req->execute();
-    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_order=(column_order-1) WHERE column_order > :col_order'); 
+    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=(column_order-1) WHERE column_order > :col_order'); 
     $req->bindValue(':col_order', $col_order);
     $req->execute();
 
-    $req = $app['db']->executeQuery('SELECT alias FROM '.$dbname.$token.'_columns'); 
+    $req = $app['db']->executeQuery('SELECT alias FROM '.$hash.'_columns'); 
     $fields=$fields_type='';
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
@@ -1211,30 +1342,30 @@ $app->get('/delete-col/{dbname}/{col_order}', function ($dbname,$col_order) use 
 
     // SQLite could not delete a column. Fix: temp table need to be created, copy data without deleted column, then drop old table and rename new one  
     $app['db']->executeQuery('BEGIN TRANSACTION'); 
-    $app['db']->executeQuery('CREATE TABLE '.$dbname.$token.'_sdf_backup (ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT '.$fields.');'); 
-    $app['db']->executeQuery('INSERT INTO  '.$dbname.$token.'_sdf_backup SELECT ID, structure, header, availability '.$fields.' FROM '.$dbname.$token.'_sdf'); 
-    $app['db']->executeQuery('DROP TABLE '.$dbname.$token.'_sdf'); 
-    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf_backup RENAME TO '.$dbname.$token.'_sdf'); 
+    $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf_backup (ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT '.$fields.');'); 
+    $app['db']->executeQuery('INSERT INTO  '.$hash.'_sdf_backup SELECT ID, structure, header, availability '.$fields.' FROM '.$hash.'_sdf'); 
+    $app['db']->executeQuery('DROP TABLE '.$hash.'_sdf'); 
+    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf_backup RENAME TO '.$hash.'_sdf'); 
     $app['db']->executeQuery('COMMIT'); 
   
     if ($request->isXmlHttpRequest())
     {
-	return $app->redirect('/moleditor/web/column-management/'.$dbname);   
+	return $app->redirect('/moleditor/web/column-management/'.$key);   
     }
     else
     {
-	return $app->redirect('/moleditor/web/display/'.$dbname);   
+	return $app->redirect('/moleditor/web/display/'.$key);   
     }
 })->bind('deleteCol');
 
 
 // form for update a column type    
-$app->match('/change-column-type/{dbname}/{alias}', function ($dbname, $alias) use ($app) {
-    $token = $app['token'];
+$app->match('/change-column-type/{key}/{alias}', function ($key, $alias) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
 
     $alias = str_replace ('col', '', $alias);
-    $req = $app['db']->prepare('SELECT type, coltype FROM '.$dbname.$token.'_columns WHERE alias=:alias'); 
+    $req = $app['db']->prepare('SELECT type, coltype FROM '.$hash.'_columns WHERE alias=:alias'); 
     $req->bindValue(':alias', $alias);
     $req->execute();  
     $disabled=false;
@@ -1262,32 +1393,32 @@ $app->match('/change-column-type/{dbname}/{alias}', function ($dbname, $alias) u
 	//{
 	    $data=$form->getData();
 	    $coltype=$data['coltype'];
-	    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET coltype=:coltype WHERE alias=:alias'); 
+	    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET coltype=:coltype WHERE alias=:alias'); 
 	    $req->bindValue(':alias', $alias);
 	    $req->bindValue(':coltype', $coltype);
 	    $req->execute();
 	//}
-	    return $app->redirect('/moleditor/web/column-management/'.$dbname);   
+	    return $app->redirect('/moleditor/web/column-management/'.$key);   
     }
     
     return $app['twig']->render('colTypeUpdate.twig', array(
-	'dbname'=>$dbname, 'alias'=>$alias, 'form' => $form->createView()
+	'key'=>$key, 'alias'=>$alias, 'form' => $form->createView()
     ));
 
 })->bind('changeColType');
 
 
 // Change column order
-$app->get('/move-col/{dbname}/{col_order}/{dir}', function ($dbname, $col_order, $dir) use ($app) {
-    $token = $app['token'];
+$app->get('/move-col/{key}/{col_order}/{dir}', function ($key, $col_order, $dir) use ($app) {
+    $hash=$app['access']->getHash($key);
 
-	$req = $app['db']->executeQuery('SELECT min(column_order) minorder, max(column_order) maxorder FROM '.$dbname.$token.'_columns WHERE type IN ("tag", "descriptor")');
+	$req = $app['db']->executeQuery('SELECT min(column_order) minorder, max(column_order) maxorder FROM '.$hash.'_columns WHERE type IN ("tag", "descriptor")');
 	$result = $req->fetchAll();
 	$maxorder=$result[0]['maxorder'];
 	$minorder=$result[0]['minorder'];
 	
 	// position for column to move is temporarely -1
-	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_order=-1 WHERE column_order=:col_order'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=-1 WHERE column_order=:col_order'); 
 	$req->bindValue(':col_order', $col_order);
 	$req->execute();
 	if ($dir=='down')
@@ -1307,32 +1438,39 @@ $app->get('/move-col/{dbname}/{col_order}/{dir}', function ($dbname, $col_order,
 	    $new_order=$maxorder;
 	}
 	// target column get position of column to move
-	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_order=:col_order WHERE column_order=:new_order'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:col_order WHERE column_order=:new_order'); 
 	$req->bindValue(':col_order', $col_order);
 	$req->bindValue(':new_order', $new_order);
 	$req->execute();
 
 	// column to move (temp -1) get position of target column
-	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_order=:new_order WHERE column_order=-1'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:new_order WHERE column_order=-1'); 
 	$req->bindValue(':new_order', $new_order);
 	$req->execute();
-    return $app->redirect('/moleditor/web/column-management/'.$dbname);   
+    return $app->redirect('/moleditor/web/column-management/'.$key);   
 	
 })->bind('moveCol');
 
 
 // Exportation modal
-$app->get('/export-modal/{dbname}', function ($dbname) use ($app) {
+$app->get('/export-modal/{key}', function ($key) use ($app) {
     return $app['twig']->render('export.twig', array(
-        'dbname'=>$dbname
+        'key'=>$key
     ));
 
 })->bind('exportModal');
 
 
 // Exportation form
-$app->get('/export/{dbname}/{type}', function ($dbname, $type) use ($app) {
-    $token = $app['token'];
+$app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$dbname=$row['dbname'];
+    }
 
     // get session variable
     $config=$app['session']->get('config');
@@ -1364,7 +1502,7 @@ $app->get('/export/{dbname}/{type}', function ($dbname, $type) use ($app) {
     $columns = array();
 
     
-    $req = $app['db']->executeQuery('SELECT column_name, alias,column_order,coltype FROM '.$dbname.$token.'_columns ORDER BY column_order');
+    $req = $app['db']->executeQuery('SELECT column_name, alias,column_order,coltype FROM '.$hash.'_columns ORDER BY column_order');
     $result = $req->fetchAll();
     $alias = array();
     $sdf=$csv='';
@@ -1437,7 +1575,7 @@ $app->get('/export/{dbname}/{type}', function ($dbname, $type) use ($app) {
     }
     
  
-    $req = $app['db']->prepare('SELECT structure, header'.$add_col.$avail.' FROM '.$dbname.$token.'_sdf '.$clausewhere.' ORDER BY '.$orderby.' '. $dir);
+    $req = $app['db']->prepare('SELECT structure, header'.$add_col.$avail.' FROM '.$hash.'_sdf '.$clausewhere.' ORDER BY '.$orderby.' '. $dir);
 
     $res=$req->execute();
     $j=2;
@@ -1508,7 +1646,7 @@ $app->get('/export/{dbname}/{type}', function ($dbname, $type) use ($app) {
     
     // creation of exported file    
     $filename = __DIR__.'/../src/tmp/'.$dbname.'.'.$type;
-    $outpath = __DIR__.'/../src/tmp/export'.$dbname.$token.'.'.$type;
+    $outpath = __DIR__.'/../src/tmp/export'.$hash.'.'.$type;
     $f = fopen ($outpath, 'w+');
     if ($type=='sdf')
     {
@@ -1560,11 +1698,11 @@ $app->get('/export/{dbname}/{type}', function ($dbname, $type) use ($app) {
 
 
 // Column management
-$app->match('/column-management/{dbname}', function ($dbname) use ($app) {
-    $token = $app['token'];
+$app->match('/column-management/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
    
-    $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$dbname.$token.'_columns WHERE type IN ("tag", "descriptor") ORDER BY column_order');
+    $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$hash.'_columns WHERE type IN ("tag", "descriptor") ORDER BY column_order');
     $columns = array();
     $alias = array();
     $coltab = array();
@@ -1585,15 +1723,15 @@ $app->match('/column-management/{dbname}', function ($dbname) use ($app) {
     }
     
     return $app['twig']->render('colManagement.twig', array(
-        'dbname'=>$dbname, 'columns' => $coltab
+        'key'=>$key, 'columns' => $coltab
     ));
  
 })->bind('colManagement');
 
 
 // Add a new descriptor
-$app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
-    $token = $app['token'];
+$app->match('/newdesc/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
     $descriptors_array = array ('formula'=> array('label'=> 'Formula','coltype'=>'text'),
 				'MW'=> array('label'=> 'Mol Weight','coltype'=>'numeric'),
@@ -1602,14 +1740,14 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 				'HBD'=> array('label'=> 'Donor','coltype'=>'numeric')
 				);
 				
-    foreach($descriptors_array as $key => $val)
+    foreach($descriptors_array as $k => $val)
     {
-	$descriptor_coltype[$key] = $val['coltype'];
-	$descriptor_list[$key] = $val['label'];
+	$descriptor_coltype[$k] = $val['coltype'];
+	$descriptor_list[$k] = $val['label'];
     }
     
     // Get columns corresponding to descriptors
-    $req=$app['db']->executeQuery('SELECT column_name, alias, type FROM '.$dbname.$token.'_columns');
+    $req=$app['db']->executeQuery('SELECT column_name, alias, type FROM '.$hash.'_columns');
     
     $res = $req->fetchAll();
     $doublon_colname='';
@@ -1645,13 +1783,13 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 	    $colname=$data['coldesc'];
 	    if ($colname!=$doublon_colname)
 	    {
-		$req = $app['db']->executeQuery('SELECT max(alias) maxalias, max(column_order) maxorder FROM '.$dbname.$token.'_columns');
+		$req = $app['db']->executeQuery('SELECT max(alias) maxalias, max(column_order) maxorder FROM '.$hash.'_columns');
 		$result = $req->fetchAll();
 
 		$newalias=$result[0]['maxalias']+1;
 		$neworder=$result[0]['maxorder']+1;
 
-		$req = $app['db']->prepare('INSERT INTO '.$dbname.$token.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias, :type, :coltype)');
+		$req = $app['db']->prepare('INSERT INTO '.$hash.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias, :type, :coltype)');
 		$req->bindValue(':alias', $newalias);
 		$req->bindValue(':order', $neworder);
 		$req->bindValue(':column', $descriptor_list[$colname]);
@@ -1659,7 +1797,7 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		$req->bindValue(':coltype', $descriptor_coltype[$colname]);
 		$res=$req->execute();
 
-		$req=$app['db']->executeQuery('PRAGMA table_info('.$dbname.$token.'_sdf)');
+		$req=$app['db']->executeQuery('PRAGMA table_info('.$hash.'_sdf)');
 		$no_alter=0;
 		while ($tab = $req->fetch(PDO::FETCH_ASSOC))
 		{
@@ -1670,10 +1808,10 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		}
 		if (!$no_alter)
 		{
-		    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf ADD COLUMN col'.$newalias.' TEXT');
+		    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf ADD COLUMN col'.$newalias.' TEXT');
 		}
 		// create a tmp SDF with structure+ID as header
-		$req=$app['db']->executeQuery('SELECT ID, structure FROM '.$dbname.$token.'_sdf');
+		$req=$app['db']->executeQuery('SELECT ID, structure FROM '.$hash.'_sdf');
 		$sdf='';
 		while ($tab = $req->fetch(PDO::FETCH_ASSOC))
 		{
@@ -1684,7 +1822,7 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		}
 
 		// creation of temp SDF file
-		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$dbname.$token.'.sdf';
+		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$hash.'.sdf';
 		$f = fopen ($desc_sdf_path, 'w+');
 		fwrite ($f, $sdf);
 		fclose($f);
@@ -1699,7 +1837,7 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		// Update database
 		$sql = 'BEGIN TRANSACTION';
 		$app['db']->executeQuery($sql);
-		$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET col'.$newalias.'=:val WHERE ID=:id' );
+		$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET col'.$newalias.'=:val WHERE ID=:id' );
 		foreach($tabdesc as $id => $val)
 		{
 		    $req->bindValue(':id', $id);
@@ -1716,20 +1854,20 @@ $app->match('/newdesc/{dbname}', function ($dbname) use ($app) {
 		    'A column named "'.$colname.'" already exists. Please rename it first before adding this descriptor column !'
 		);
 	    }
-	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
     return $app['twig']->render('colNewDesc.twig', array(
-        'dbname'=>$dbname, 'form' => $form->createView()
+        'key'=>$key, 'form' => $form->createView()
     ));
 
 })->bind('newDesc');
 
 
 // Add a new column
-$app->match('/newcol/{dbname}', function ($dbname) use ($app) {
+$app->match('/newcol/{key}', function ($key) use ($app) {
     $request = $app['request'];
-    $token = $app['token'];
+    $hash=$app['access']->getHash($key);
 
     $form = $app['form.factory']->createBuilder('form')
         ->add('colname')
@@ -1744,7 +1882,7 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 	    $colname=$data['colname'];
 
 	    // get all existing columns
-	    $req = $app['db']->executeQuery('SELECT column_name FROM '.$dbname.$token.'_columns');
+	    $req = $app['db']->executeQuery('SELECT column_name FROM '.$hash.'_columns');
 	    $res= $req->fetchAll();
 	    $allcol=array('ID','header','structure','availability');
 	    foreach ($res as $row)
@@ -1760,13 +1898,13 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 	    }
 	    else
 	    {
-		$req = $app['db']->executeQuery('SELECT max(alias) maxalias, max(column_order) maxorder FROM '.$dbname.$token.'_columns');
+		$req = $app['db']->executeQuery('SELECT max(alias) maxalias, max(column_order) maxorder FROM '.$hash.'_columns');
 		$result = $req->fetchAll();
 
 		$newalias=$result[0]['maxalias']+1;
 		$neworder=$result[0]['maxorder']+1;
 
-		$req = $app['db']->prepare('INSERT INTO '.$dbname.$token.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias, :type, :coltype)');
+		$req = $app['db']->prepare('INSERT INTO '.$hash.'_columns (column_name, column_order, alias, type, coltype) VALUES (:column,:order,:alias, :type, :coltype)');
 		$req->bindValue(':alias', $newalias);
 		$req->bindValue(':order', $neworder);
 		$req->bindValue(':column', $colname);
@@ -1774,7 +1912,7 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 		$req->bindValue(':coltype', 'text');
 		$res=$req->execute();
 
-		$req=$app['db']->executeQuery('PRAGMA table_info('.$dbname.$token.'_sdf)');
+		$req=$app['db']->executeQuery('PRAGMA table_info('.$hash.'_sdf)');
 		$no_alter=0;
 		while ($tab = $req->fetch(PDO::FETCH_ASSOC))
 		{
@@ -1785,14 +1923,14 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 		}
 		if (!$no_alter)
 		{
-		    $app['db']->executeQuery('ALTER TABLE '.$dbname.$token.'_sdf ADD COLUMN col'.$newalias.' TEXT');
+		    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf ADD COLUMN col'.$newalias.' TEXT');
 		}
 	    }
-	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
     return $app['twig']->render('colNew.twig', array(
-        'dbname'=>$dbname, 'form' => $form->createView()
+        'key'=>$key, 'form' => $form->createView()
     ));
     
 })->bind('newCol');
@@ -1800,8 +1938,8 @@ $app->match('/newcol/{dbname}', function ($dbname) use ($app) {
 
 
 // Update column
-$app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app) {
-    $token = $app['token'];
+$app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
+    $hash=$app['access']->getHash($key);
 
     $config=$app['session']->get('config');
     if ($col=='colheader')
@@ -1809,7 +1947,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 	$col='header';
     }
 
-    $req = $app['db']->prepare('SELECT column_name, alias, column_order, type, coltype FROM '.$dbname.$token.'_columns where alias=:alias');
+    $req = $app['db']->prepare('SELECT column_name, alias, column_order, type, coltype FROM '.$hash.'_columns where alias=:alias');
     $req->bindValue(':alias', str_replace('col','',$col));
     $req->execute();
     $results= $req->fetchAll();
@@ -1832,7 +1970,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
     // See if sorted column is TEXT or NUMERIC type (because sorting is different for number as strings or numerics), and use CAST function if needed
     $colTypeSort='';
     $colsort=$config['sort'];
-    $req = $app['db']->prepare('SELECT  alias, coltype FROM '.$dbname.$token.'_columns where alias=:alias');
+    $req = $app['db']->prepare('SELECT  alias, coltype FROM '.$hash.'_columns where alias=:alias');
     $req->bindValue(':alias', str_replace('col','',$config['sort']));
     $req->execute();
     $results= $req->fetchAll();
@@ -1845,7 +1983,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 	$colsort = 'CAST('.$config['sort'].' AS INT)';
     }
 
-    $req = $app['db']->executeQuery('SELECT ID, '.$col.' FROM '.$dbname.$token.'_sdf ORDER BY '.$colsort.' '.$config['dir']);
+    $req = $app['db']->executeQuery('SELECT ID, '.$col.' FROM '.$hash.'_sdf ORDER BY '.$colsort.' '.$config['dir']);
     $results= $req->fetchAll();
     foreach ($results as $tab)
     {
@@ -1914,7 +2052,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 	    $coltype = $data['coltype'];
 	    if ($coltype)
 	    {
-		$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET coltype=:coltype where alias=:alias');
+		$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET coltype=:coltype where alias=:alias');
 		$req->bindValue(':coltype', $coltype);
 		$req->bindValue(':alias', str_replace('col','',$col));
 		$res=$req->execute();
@@ -1923,7 +2061,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 	    if ($colname)
 	    {
 		// get all existing columns
-		$req = $app['db']->executeQuery('SELECT column_name FROM '.$dbname.$token.'_columns');
+		$req = $app['db']->executeQuery('SELECT column_name FROM '.$hash.'_columns');
 		$res= $req->fetchAll();
 		$allcol=array('ID','structure','availability');
 		foreach ($res as $row)
@@ -1947,7 +2085,7 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 		}
 		if ($updateOk)
 		{
-		    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_columns SET column_name=:colname where alias=:alias');
+		    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_name=:colname where alias=:alias');
 		    $req->bindValue(':colname', $colname);
 		    $req->bindValue(':alias', str_replace('col','',$col));
 		    $res=$req->execute();
@@ -1961,20 +2099,20 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 		$app['db']->executeQuery($sql);
 		if ($data['sameForAll'])
 		{
-		    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET '.$col.'=:newval');
+		    $req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET '.$col.'=:newval');
 		    $req->bindValue(':newval', $data['sameForAll']);
 		    $res=$req->execute();
 		}
 		else
 		{
-		    foreach ($ids as $key=>$id)
+		    foreach ($ids as $k=>$id)
 		    {
-			if (isset($newvalues[$key]))
+			if (isset($newvalues[$k]))
 			{
-			    if ($newvalues[$key]!=$values[$key])
+			    if ($newvalues[$k]!=$values[$k])
 			    {
-				$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET '.$col.'=:newval where ID=:id');
-				$req->bindValue(':newval', trim(str_replace("\n", '',$newvalues[$key])));
+				$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET '.$col.'=:newval where ID=:id');
+				$req->bindValue(':newval', trim(str_replace("\n", '',$newvalues[$k])));
 				$req->bindValue(':id', $id);
 				$res=$req->execute();
 			    }
@@ -1984,22 +2122,21 @@ $app->match('/column-update/{dbname}/{col}', function ($dbname, $col) use ($app)
 		$sql = 'END TRANSACTION';
 		$app['db']->executeQuery($sql);
 	    }
-    	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+    	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
     
     return $app['twig']->render('colUpdate.twig', array(
-        'dbname'=>$dbname, 'form' => $form->createView(), 'column'=>$column
-
+        'key'=>$key, 'form' => $form->createView(), 'column'=>$column
     ));
  
 })->bind('colUpdate');
 
 // 3D
-$app->match('/3d/{dbname}/{id}', function ($dbname, $id) use ($app) {
-    $token = $app['token'];
+$app->match('/3d/{key}/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
-    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$hash.'_sdf WHERE ID=:id');
     $req->bindValue(':id', $id);
     $res=$req->execute();
     while ($row = $req->fetch(PDO::FETCH_ASSOC))
@@ -2012,7 +2149,7 @@ $app->match('/3d/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	}
 	$struct=$header."\n".$row['structure'];
     }
-    $sdf_path = __DIR__.'/../src/tmp/sdf3d'.$dbname.'_'.$id.$token.'.sdf';
+    $sdf_path = __DIR__.'/../src/tmp/sdf3d'.$hash.'_'.$id.$hash.'.sdf';
     $f = fopen ($sdf_path, 'w+');
     fwrite ($f, $struct);
     fclose($f);
@@ -2028,16 +2165,16 @@ $app->match('/3d/{dbname}/{id}', function ($dbname, $id) use ($app) {
     }
 
     return $app['twig']->render('threeD.twig', array(
-        'dbname'=>$dbname, 'id'=>$id, 'sdf'=>$sdf
+        'key'=>$key, 'id'=>$id, 'sdf'=>$sdf
     ));
 })->bind('3d');
 
 
 // Clean a structure
-$app->match('/clean/{dbname}/{id}', function ($dbname, $id) use ($app) {
-    $token = $app['token'];
+$app->match('/clean/{key}/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
-    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+    $req = $app['db']->prepare('SELECT ID, structure, header FROM '.$hash.'_sdf WHERE ID=:id');
     $req->bindValue(':id', $id);
     $res=$req->execute();
     while ($row = $req->fetch(PDO::FETCH_ASSOC))
@@ -2049,7 +2186,7 @@ $app->match('/clean/{dbname}/{id}', function ($dbname, $id) use ($app) {
     if (isset($struct))
     {
 	// create a temp SDF
-	$clean_sdf_path = __DIR__.'/../src/tmp/sdfclean'.$dbname.'_'.$id.$token.'.sdf';
+	$clean_sdf_path = __DIR__.'/../src/tmp/sdfclean'.$hash.'_'.$id.$hash.'.sdf';
 	$f = fopen ($clean_sdf_path, 'w+');
 	fwrite ($f, $struct);
 	fclose($f);
@@ -2059,21 +2196,20 @@ $app->match('/clean/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	$sdf_clean = $app['depict']->cleanMol($clean_sdf_path);
 	unlink($clean_sdf_path);
 	// update structure
-	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET structure=:structure WHERE ID=:id' );
+	$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET structure=:structure WHERE ID=:id' );
 	$req->bindValue(':id', $id);
 	$req->bindValue(':structure', $sdf_clean);
-	//echo 'UPDATE '.$dbname.$token.'_sdf SET structure='.$sdf_clean.' WHERE ID='.$id;exit();
 	$res=$req->execute();
    }
-    return $app->redirect('/moleditor/web/display/'.$dbname);           
+    return $app->redirect('/moleditor/web/preview-one/'.$key.'/'.$id);           
    
 })->bind('clean');
 
 
 // Sketcher management (draw new or update existing structure)
-$app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
+$app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
     
-    $token = $app['token'];
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
 
     if ($id=='new')
@@ -2082,7 +2218,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
     }
     else
     {
-	$req = $app['db']->prepare('SELECT ID, structure, header FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+	$req = $app['db']->prepare('SELECT ID, structure, header FROM '.$hash.'_sdf WHERE ID=:id');
 	$req->bindValue(':id', $id);
 	$res=$req->execute();
 	while ($row = $req->fetch(PDO::FETCH_ASSOC))
@@ -2111,23 +2247,23 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 
 	    if ($id=='new')
 	    {
-		$req = $app['db']->executeQuery('SELECT MAX(ID) maxid FROM '.$dbname.$token.'_sdf');
+		$req = $app['db']->executeQuery('SELECT MAX(ID) maxid FROM '.$hash.'_sdf');
 		$result = $req->fetchAll();
 		$maxid=($result[0]['maxid']+1);
 
-		$req = $app['db']->prepare('INSERT INTO '.$dbname.$token.'_sdf (ID) VALUES (:id)');
+		$req = $app['db']->prepare('INSERT INTO '.$hash.'_sdf (ID) VALUES (:id)');
 		$req->bindValue(':id', $maxid);
 		$res=$req->execute();
 		$id=$maxid;
 	    }
 
-	    $req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET structure=:newstruct, availability="" WHERE ID=:id');
+	    $req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET structure=:newstruct, availability="" WHERE ID=:id');
 	    $req->bindValue(':newstruct', $newstruct);
 	    $req->bindValue(':id', $id);
 	    $res=$req->execute();
 
 	// Update of computed descriptors
-	    $req=$app['db']->executeQuery('SELECT column_name, alias FROM '.$dbname.$token.'_columns WHERE type="descriptor"');
+	    $req=$app['db']->executeQuery('SELECT column_name, alias FROM '.$hash.'_columns WHERE type="descriptor"');
 	    $res = $req->fetchAll();
 
 	    foreach ($res as $val)
@@ -2139,7 +2275,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	    // recompute existing descriptors
 	    if (isset($descriptors))
 	    {
-		$req=$app['db']->prepare('SELECT ID, structure FROM '.$dbname.$token.'_sdf WHERE ID=:id');
+		$req=$app['db']->prepare('SELECT ID, structure FROM '.$hash.'_sdf WHERE ID=:id');
 		$req->bindValue(':id', $id);
 		$res=$req->execute();
 		$sdf='';
@@ -2151,7 +2287,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 		}
 
 		// create a temp SDF
-		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$dbname.$token.'.sdf';
+		$desc_sdf_path = __DIR__.'/../src/tmp/sdfdesc'.$hash.'.sdf';
 		$f = fopen ($desc_sdf_path, 'w+');
 		fwrite ($f, $sdf);
 		fclose($f);
@@ -2168,7 +2304,7 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 		{
 		    foreach ($descval as $desc=>$val)
 		    {
-			$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET col'.$col_descriptors[$desc].'=:val WHERE ID=:id' );
+			$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET col'.$col_descriptors[$desc].'=:val WHERE ID=:id' );
 			$req->bindValue(':id', $id);
 			$req->bindValue(':val', $val);
 			$req->execute();
@@ -2177,21 +2313,21 @@ $app->match('/ketcher/{dbname}/{id}', function ($dbname, $id) use ($app) {
 	    }
 	    if ($offset!='')
 	    {
-		return $app->redirect('/moleditor/web/preview/'.$dbname.'/'.$offset);           
+		return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);           
 	    }
 	    
-	    return $app->redirect('/moleditor/web/display/'.$dbname);           
+	    return $app->redirect('/moleditor/web/display/'.$key);           
 	}
     }
 
     return $app['twig']->render('ketcher.twig', array(
-        'form' => $form->createView(), 'dbname'=>$dbname, 'id'=>$id
+        'form' => $form->createView(), 'key'=>$key, 'id'=>$id
     ));
 })->bind('ketcher');
 
 
 // Form to enable or disable checking of availability
-$app->match('/check-availability/{dbname}', function ($dbname) use ($app) {
+$app->match('/check-availability/{key}', function ($key) use ($app) {
     $av = $app['session']->get('availability');
     if ($av)
     {
@@ -2201,17 +2337,17 @@ $app->match('/check-availability/{dbname}', function ($dbname) use ($app) {
     {
 	$app['session']->set('availability', 1);
     }
-    return $app->redirect('/moleditor/web/column-management/'.$dbname);           
+    return $app->redirect('/moleditor/web/column-management/'.$key);           
 })->bind('check-availability');
 
 
 // Check availability on Ambinter website
-$app->match('/commercial-availability/{dbname}/{id}', function ($dbname, $id) use ($app) {
-    $token = $app['token'];
+$app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
     $request = $app['request'];
     $available='';
     
-    $req = $app['db']->prepare('SELECT ID, structure, header, availability FROM '.$dbname.$token.'_sdf WHERE ID=:id ');
+    $req = $app['db']->prepare('SELECT ID, structure, header, availability FROM '.$hash.'_sdf WHERE ID=:id ');
     $req->bindValue(':id', $id);
     $res=$req->execute();
     while ($row = $req->fetch(PDO::FETCH_ASSOC))
@@ -2240,7 +2376,7 @@ $app->match('/commercial-availability/{dbname}/{id}', function ($dbname, $id) us
 		$available='NA';
 	    }
 	}
-	$req = $app['db']->prepare('UPDATE '.$dbname.$token.'_sdf SET availability=:available WHERE ID=:ID');
+	$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET availability=:available WHERE ID=:ID');
 	$req->bindValue(':ID', $id);
 	$req->bindValue(':available', $available);
 	$res=$req->execute();
@@ -2251,6 +2387,45 @@ $app->match('/commercial-availability/{dbname}/{id}', function ($dbname, $id) us
     ));
  
 })->bind('availability');
+
+
+// Create a copy of a database
+$app->match('/database/{key}/copy', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+    
+    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$olddbname=$row['dbname'];
+	$dbname=preg_replace('/_copy.+/','',$olddbname);
+	$dbname.='_copy'.date('Ymd-His');
+    }
+    $private='';
+    if (isset($dbname))
+    {
+	$newhash= 'ME'.hash('sha256', $dbname.rand(0,100000));
+	$private=hash('adler32', $hash.rand(0,100000));
+		
+	$req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+	$req->bindValue(':hash', $newhash);
+	$req->bindValue(':private', $private);
+	$req->bindValue(':public', '');
+	$req->bindValue(':session', $app['session']->getId());
+	$req->bindValue(':dbname', $dbname);
+	$req->execute();
+
+	$results = $app['db']->executeQuery('CREATE TABLE '.$newhash.'_columns AS SELECT * FROM '.$hash.'_columns ');
+	$results = $app['db']->executeQuery('CREATE TABLE '.$newhash.'_sdf AS SELECT * FROM '.$hash.'_sdf ');
+	$app['session']->getFlashBag()->add(
+	    'success',
+	    'Copy of database "'.$olddbname.'" has been successfully created!'
+	);
+
+    }
+    return $app->redirect('/moleditor/web/display/'.$private);           
+})->bind('dbcopy');
 
 
 ## MOLEDITOR WEBSITE PAGES ##

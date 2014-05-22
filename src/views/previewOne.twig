@@ -7,13 +7,23 @@
 			</h4>
 		</div>
 		<div class="modal-body">
-			{% for key, val in structures %}
-				{% if key=='structure' %}
+			{% for k, val in structures %}
+				{% if k=='structure' %}
 					<div class="img-thumbnail">{{val|raw}}</div>
-						<a title="Click to edit structure" class="btn btn-sm btn-primary" data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':structures.ID, 'offset':offset }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-pencil"></span> Edit structure</a>
-
+					<div class="margint">
+						{% if keytype=='private' %}
+							<a title="Click to edit structure" class="btn btn-primary" data-toggle="modal" href="{{ path ('ketcher', {'key':key, 'id':structures.ID, 'offset':offset }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-pencil"></span> Edit structure</a>
+							<a id="clean" title="Clean structure" class=" btn btn-sm btn-info"><span class="glyphicon glyphicon-ok-circle"></span> Clean</a>
+						{% endif %}
+						<script>
+							$("#clean").click(function(){
+								$("#previewOne").load("{{ path('clean', {'key':key, 'id':structures.ID})}}");
+							});
+						</script>
+						<a title="View 3D structure" class=" marginl btn btn-sm btn-info" data-toggle="modal" href="{{ path ('3d', {'key': key, 'id':structures.ID }) }}" data-target="#3d"><span class="glyphicon glyphicon-eye-open"> 3D</a>
+					</div>
 				{% endif %}
-				{% if key=='header' %}
+				{% if k=='header' %}
 					<hr/>
 					{%if val %}
 						<h4><strong>Header: </strong>{{val}}</h4>	
@@ -23,9 +33,9 @@
 				{% endif %}
 			{% endfor %}
 			<ul>
-			{% for key, val in structures %}
-				{% if key!='structure' and key!='ID' and key!='header'  %}
-					<li><strong>{{key}}: </strong>{{val}}</li>
+			{% for k, val in structures %}
+				{% if k!='structure' and k!='ID' and k!='header'  %}
+					<li><strong>{{k}}: </strong>{{val}}</li>
 				{% endif %}
 			{% endfor %}			
 			</ul>

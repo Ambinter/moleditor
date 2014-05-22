@@ -34,20 +34,27 @@
       <!-- Collect the nav links, forms, and other content for toggling -->
 	<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	    <ul class="nav navbar-nav">
-	      {#<li class=""><a class="" href="{{path('index')}}"><span class="glyphicon glyphicon-plus"></span> New</a></li>#}
 	     {{ render(path('listDB')) }}
 	    </ul>
 	    <ul class="nav navbar-nav navbar-right">
 		<li class="">
-		    {%- if dbname is defined %}
-		       <a class="" data-toggle="modal" data-target="#dbconfig" href="{{path('dbConfig', {'dbname':dbname})}}"><span class="glyphicon glyphicon-cog"></span> {{dbname}}</a>
+		    {%- if key is defined %}
+			{% if keytype=='private' %}
+		       <a class="pull-right" data-toggle="modal" data-target="#dbconfig" href="{{path('dbConfig', {'key':key})}}"><span class="glyphicon glyphicon-cog"></span>
+			    {{ render(path('dbname',{'key':key})) }}
+		       </a>
+		       <a class="pull-right" data-toggle="modal" data-target="#share" href="{{path('share', {'key':key})}}"><span class="glyphicon glyphicon-send"></span>
+			    Share
+		       </a>
+			{% else %}
+			    <a class="pull-right text-warning">{{ render(path('dbname',{'key':key})) }} - Read Only</a>
+			{% endif -%}
 		    {% endif -%}
 		</li>
 	    </ul>
 	</div>
     </nav>
     
-
     {% for type, flashMessages in app.session.flashbag.all() %}
 	{% for flashMessage in flashMessages %}
 	    <div class="container alert alert-{{ type }} alert-dismissable">
@@ -60,7 +67,6 @@
     
     {%block precontent%}
     {%endblock%}
-    {#<div class="load" >Loading...</div>#}
 
     <div class="content">
 	    {%block content%}
@@ -76,20 +82,21 @@
 	    <li><a class="text-warning" href="https://github.com/Ambinter/moleditor/archive/master.zip">Download</a></li>
 	    <li><a href="mailto:chemoinformatics@ambinter.com">Contact us</a></li>
 	<li class="small margin navbar-right">
-	    Copyright<a target="top" href="http://www.ambinter.com/about-us"> Ambinter</a>, 2013 
+	    Version 1.1 - Copyright<a target="top" href="http://www.ambinter.com/about-us"> Ambinter</a>, 2013 
 	</li>
 	</ul>
     </nav>
+
+<div class="modal fade" id="dbconfig" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+<div class="modal fade" id="share" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+</div>
+
     <script>
 	$('body').on('hidden.bs.modal', '.modal', function () {
 		$(this).removeData('bs.modal');
 	});
 
-	{#//$(document).ready(function() {
-	    ////alert('ready');
-	    //$('.load').hide();
-	//});
-	#}
     </script>
 	
 </body>

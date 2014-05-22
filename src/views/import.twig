@@ -4,21 +4,24 @@
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 			<h3 class="modal-title">Add new structures</h3>
 		</div>
-		<form id="formimport" class="form-inline" action="{{ path('import', {'dbname':dbname}) }}" method="POST" name="import" enctype="multipart/form-data">
+		<form id="formimport" class="form-inline" action="{{ path('import', {'key':key}) }}" method="POST" name="import" enctype="multipart/form-data">
 			<div class="modal-body">
-				<h4 class="text-info">Select a file <span class="small">(SDF or Smiles)</span> to import new compounds in your base</h4>
-				{{ form_errors(form) }}
-				 <div class="well form-group">
-					{{ form_row(form.FileUpload) }}
-					<p class="help-block">Max upload size 50Mo.</p>
-				</div>	
-				{{ form_rest(form) }}
-				<button type="submit" class=" btn btn-lg btn-primary"><span class="glyphicon glyphicon-save"></span> Upload file</button>
+				{%if keytype=='private' %}
+					<h4 class="text-info">Select a file <span class="small">(SDF or Smiles)</span> to import new compounds in your base</h4>
+					{{ form_errors(form) }}
+					 <div class="well form-group">
+						{{ form_row(form.FileUpload) }}
+						<p class="help-block">Max upload size 50Mo.</p>
+					</div>	
+					{{ form_rest(form) }}
+					<button type="submit" class=" btn btn-lg btn-primary"><span class="glyphicon glyphicon-save"></span> Upload file</button>
 
-				<hr/>
-				<h4 class="text-info">Or add a single compound manually</h4>
-				 <a title="Click to edit structure" class=" btn btn-sm btn-primary " data-toggle="modal" href="{{ path ('ketcher', {'dbname': dbname, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-pencil"></span> Draw new structure</a>
-
+					<hr/>
+					<h4 class="text-info">Or add a single compound manually</h4>
+					 <a title="Click to edit structure" class=" btn btn-sm btn-primary " data-toggle="modal" href="{{ path ('ketcher', {'key':key, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-pencil"></span> Draw new structure</a>
+				{% else %}
+					<div class="alert alert-danger">You are not the owner of this database, this functionnality is disabled.</div>
+				{% endif %}
 			</div>
 
 			<div class="modal-footer">

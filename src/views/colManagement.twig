@@ -21,7 +21,7 @@
 									{% endif %}
 								</th>
 								<td>
-									{{ render(path('changeColType', {'dbname': dbname, 'alias':colhead.alias})) }}
+									{{ render(path('changeColType', {'key': key, 'alias':colhead.alias})) }}
 								</td>
 								<td>
 									<a id="moveColDown{{ colhead.order }}">
@@ -42,13 +42,13 @@
 							</tr>
 							<script>
 								$("#deleteCol{{ colhead.order }}").click(function(){
-									$("#colManagement").load("{{ path ('deleteCol', {'dbname': dbname, 'col_order':colhead.order}) }}");
+									$("#colManagement").load("{{ path ('deleteCol', {'key':key, 'col_order':colhead.order}) }}");
 								});
 								$("#moveColDown{{ colhead.order }}").click(function(){
-									$("#colManagement").load("{{ path ('moveCol', {'dbname': dbname, 'col_order':colhead.order, 'dir':'down'}) }}");
+									$("#colManagement").load("{{ path ('moveCol', {'key':key, 'col_order':colhead.order, 'dir':'down'}) }}");
 								});
 								$("#moveColUp{{ colhead.order }}").click(function(){
-									$("#colManagement").load("{{ path ('moveCol', {'dbname': dbname, 'col_order':colhead.order, 'dir':'up'}) }}");
+									$("#colManagement").load("{{ path ('moveCol', {'key':key, 'col_order':colhead.order, 'dir':'up'}) }}");
 								});							
 							</script>
 						{% endfor %}
@@ -61,13 +61,13 @@
 
 				<hr/>
 				<h4 class="text-info">Add new column</h4>
-				{{ render(path('newDesc', {'dbname': dbname})) }}
+				{{ render(path('newDesc', {'key':key})) }}
 				<p><strong>or</strong></p>
-				{{ render(path('newCol', {'dbname': dbname})) }}
+				{{ render(path('newCol', {'key':key})) }}
 
 
 				<hr/>
-					<div id="checkav"" class=" onoff pull-right" href="{{ path ('check-availability', {'dbname': dbname}) }}">
+					<div id="checkav"" class=" onoff pull-right" href="{{ path ('check-availability', {'key':key}) }}">
 						{%if app.session.get('availability')==1 %}
 						<span class="spin on"></span>
 						{% else %}
@@ -77,7 +77,7 @@
 					<h4 class="text-info">Check availability</h4>
 					<script>
 						$("#checkav").click(function(){
-							$("#colManagement").load("{{ path ('check-availability', {'dbname': dbname}) }}");
+							$("#colManagement").load("{{ path ('check-availability', {'key':key}) }}");
 						});
 					</script>
 				<p>

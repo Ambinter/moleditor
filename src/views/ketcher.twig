@@ -11,7 +11,7 @@
 			</h4>
 		</div>
 		
-		<form action="{{ path('ketcher', {'dbname':dbname, 'id':id })}}" method="POST">
+		<form action="{{ path('ketcher', {'key':key, 'id':id })}}" method="POST">
 			<div class="modal-body row">
 				<iframe class="col-md-12" onload="loadmol();" id="ifKetcher" src="{{ app.request.basepath }}/ketcher/ketcher.html" width="800" height="530"></iframe>
 

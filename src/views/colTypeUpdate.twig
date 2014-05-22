@@ -1,4 +1,4 @@
-<form action="{{ path ('changeColType', {'dbname':dbname, 'alias':alias} ) }}" method="POST" name="formcoltype{{alias}}" id="formcoltype{{alias}}">
+<form action="{{ path ('changeColType', {'key':key, 'alias':alias} ) }}" method="POST" name="formcoltype{{alias}}" id="formcoltype{{alias}}">
 	{{form_errors(form)}}
 	{{form_widget(form.coltype, {'id':'coltype' ~ alias })}}
 	{{form_row(form._token)}}

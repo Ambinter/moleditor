@@ -12,38 +12,40 @@
 
     <div class=" pull-right">
     	<div class=" btn-group">
-		<a title="Display List view" class="btn btn-default " href="{{ path ('display', {'dbname': dbname}) }}">
+		<a title="Display List view" class="btn btn-default " href="{{ path ('display', {'key':key}) }}">
 			  <span class="glyphicon glyphicon-th-list"></span>
 		</a>
-		<a title="You are in thumbnail view" class=" btn btn-info "  href="{{ path ('preview', {'dbname': dbname, 'offset':0}) }}">
+		<a title="You are in thumbnail view" class=" btn btn-info "  href="{{ path ('preview', {'key':key, 'offset':0}) }}">
 			  <span class="glyphicon glyphicon-th"></span>
 		</a>
 	</div>
 
 	<span class="label label-default">{{nbmol}} entries</span>
-	<a href="{{ path ('preview', {'dbname': dbname, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
+	<a href="{{ path ('preview', {'key':key, 'offset': 0}) }}"><span class="glyphicon glyphicon-step-backward"></a>
 	{% if offset-1>=0 %}
-		<a href="{{ path ('preview', {'dbname': dbname, 'offset': offset-1}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
+		<a href="{{ path ('preview', {'key':key, 'offset': offset-1}) }}"><span class="glyphicon glyphicon-chevron-left"></a>
 	{%endif%}
 	{{offset+1}}/{{(nbmol/200 //1)+1}}
 	{% if ((offset+1)*200) <= nbmol %}
-	    <a href="{{ path ('preview', {'dbname': dbname, 'offset': offset+1}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
+	    <a href="{{ path ('preview', {'key':key, 'offset': offset+1}) }}"><span class="glyphicon glyphicon-chevron-right"></a>
 	{%endif%}
-	    <a href="{{ path ('preview', {'dbname': dbname, 'offset': (nbmol/200 //1)+1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
+	    <a href="{{ path ('preview', {'key':key, 'offset': (nbmol/200 //1)+1}) }}"><span class="glyphicon glyphicon-step-forward"></a>
     </div>
 
 <br/>
 <hr/>
 <div class="row">
 {% for id, val in structures %}
-  <a data-toggle="modal" href="{{ path ('previewOne', {'dbname': dbname, 'id': id, 'offset':offset}) }}" data-target="#previewOne">
+  <a data-toggle="modal" href="{{ path ('previewOne', {'key':key, 'id': id, 'offset':offset}) }}" data-target="#previewOne">
       <div class="col-sm-4 col-md-2 ">
 	<div class="thumbnail text-center">
 		{{val.structure|raw}}
 	  <div class="caption">
-		<a class="pull-right" onClick="SuppConfirm('{{ path ('deleteRow', {'dbname': dbname, 'id':id, 'offset':offset}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
+	    {% if keytype=='private' %}
+		<a class="pull-right" onClick="SuppConfirm('{{ path ('deleteRow', {'key':key, 'id':id, 'offset':offset}) }}')" title="Delete row"><span class=" glyphicon glyphicon-trash"></span></a>
 		<span class="pull-left badge">{{id}}</span>
-		{% if val.header %}
+	    {% endif %}
+	{% if val.header %}
 		    {{val.header}}
 		{% else %}
 		    <span class="text-danger">No header</span>
@@ -57,7 +59,8 @@
 </div>
 	
 <hr/>
-<a class="btn btn-danger btn-lg marginb" data-toggle="modal" href="{{ path ('exportModal', {'dbname': dbname}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Save base</a> 
+<a class="btn btn-danger btn-lg marginb" data-toggle="modal" href="{{ path ('exportModal', {'key':key}) }}" data-target="#export"><span class="glyphicon glyphicon-export"></span> Export base</a> 
+<a title="Create a copy of this database" class="btn btn-primary btn marginb marginl" href="{{ path ('dbcopy', {'key': key}) }}"><span class="glyphicon glyphicon-file"></span> Duplicate base</a> 
 
 <script>
 	function SuppConfirm(link)

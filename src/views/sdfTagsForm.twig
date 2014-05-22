@@ -9,7 +9,7 @@
 			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
 			<h3 class="modal-title">Importation: field selection</h3>
 		</div>
-		<form id="formimport2" class="formimport2" action="{{ path('import2', {'dbname':dbname})}}" method="POST" name="form_import2">
+		<form id="formimport2" class="formimport2" action="{{ path('import2', {'key':key})}}" method="POST" name="form_import2">
 			<div class="modal-body" >
 				{% if nb_mol %}
 					<div class="well">The selected file contains {{nb_mol}} molecules</div>

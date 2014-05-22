@@ -254,3 +254,7 @@ textarea {
 .btn > span {
 	margin-bottom:0.4em;
 }
+
+.valignb {
+	vertical-align:bottom;
+}
