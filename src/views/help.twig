@@ -1,0 +1,73 @@
+{% extends "layout.twig" %}
+
+{%block content%}
+
+<div class="container">
+<h2>Help</h2>
+	<div class="well">
+		<p>MolEditor is an online editor which allows to create small chemical database, then add, remove or edit data and finally share and export your work.</p>
+		<p>MolEditor is a free and open-source software. You can install it on your own server. We also invite you to contribute to its improvement.</p>
+	</div>
+	<h3>Create database</h3>
+		<p>Just enter a name for your work and click on the button « Start a new base ». Your first database is created.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_index.png" class="text-center"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_index.png"></a></a>
+
+	<h3>Add structures</h3>
+		<p>An import dialogue prompt appears automatically when you access the database (empty for the moment) for the first time. You have 2 choices to add some molecules : import a file or draw structures manually.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_add_structures.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_add_structures.png"></a>
+
+		<h4>Add structures</h4>
+		<p>Choose a file (SDF or Smiles Format of max 50Mo) and click on “UPLOAD FILE” button.<br/>
+		If the SDFile contains fields, you can choose whether to import each data column or not. Then, click on « Import in you base » to add the molecules.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_field_select.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_field_select.png"></a>
+
+		<h4>Add structure manually</h4>
+		<p>If you do not have file to import, you can draw molecule one by one. Use « Draw new structure » button. Then, draw the structure in the sketcher and validate.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_add_manually.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_add_manually.png"></a>
+
+	<h3>General View</h3>
+		<a href="{{ app.request.basepath }}/images/help/me_general_view.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_general_view.png"></a>
+		<p>Molecules are displayed in a table:</p>
+		<p>The first ID column gives a unique number to each structure in the table. Under this number, you have a trash icon which allows to delete the row.</p>
+		<p>The structures are displayed in the next column. You can click on it to display a larger picture. You will also have access to options : edit structure, clean structure or display structure in 3D (based on openbabel calculation which can take few seconds).</p>
+		<a href="{{ app.request.basepath }}/images/help/me_preview.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_preview.png"></a>
+		
+		<p>The third column is called « Header ». It corresponds to the first line of the molecule in the SDF file or the name of the structure in the SMILES file. </p>
+		<p>The other columns correspond to different fields imported from a SDF. You can add, remove or edit these. Click on « Columns » button to manage column data. You can assign text or numeric format to data (useful for correct sorting of data) and change order of column in the table. A trash button allows to delete a column. </p>
+		<p>You can add a customized new column (choose a name and click on « ADD COLUMN ») or add a descriptor column (Formula, Mol weight, Donor, Acceptor...) which will be automatically computed.</p>
+		<p>The last column of the table is called « Availability ». Commercial availability of structure is checked on Ambinter website (Ambinter is a global chemical supplier). You can disable or enable the automatic checking on the column management dialogue box.</p>
+		<p>You can click on column headers to sort columns (one click ascending, two click descending)</p>
+		<a href="{{ app.request.basepath }}/images/help/me_column_management.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_column_management.png"></a>
+
+		<h4>Add other molecules</h4>
+		<p>After the first import you may want to add other structures (by drawing or from another file). You can click on « Add structure » button. If you import a new SDfile, fields will be automatically detected. Dialogue box will ask you whether you want to import those fields. You can also choose if you want to merge a field with an existing one or create a new field with these data.</p>
+		
+		<h4>Edit values</h4>
+			<h5>One by one</h5>
+				<p>Click on the icon next to each value of the table to open an dedicated edit box.</p>
+			<h5>Edit per column </h5>
+				<p>Click on edit button next to a column header to edit each value (one per row) or enter a same value for each row (which will erase all previous data).</p>
+				<p>With the column dialogue box, you can also change the column name or type (text or numeric). Column type is set to “text” by default (correct format type is necessary to sort values).</p>
+			<a href="{{ app.request.basepath }}/images/help/me_update_column.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_update_column.png"></a>
+
+		<h4>Search</h4>
+			<p>A search bar is displayed on the top of the page. You should select the column where you want to search an information, then select the value. If column type is text or numeric, you have different search options (« contains », « start with », « > », « < », « = » …). Perform a search to filter results.</p>
+			<a href="{{ app.request.basepath }}/images/help/me_search.png"><img class="" src="{{ app.request.basepath }}/images/help/me_search.png"></a>
+
+		<h4>Thumbnail view</h4>
+			<p>Default view is a spreadsheet with 10 results per page. You can click on the thumbnail view to display structure as a grid with 200 results per page. It could be useful to quickly browse the structures in your database. You can click on a thumbnail cell to get more detail and access to sketcher and other options.</p>
+			<a href="{{ app.request.basepath }}/images/help/me_thumnail_view.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_thumnail_view.png"></a>
+
+	<h3>Export, share and duplicate your work</h3>
+		<p>	Click on export button to save your work. You have many export formats. The default one is a SDF file but you can also choose SMILES, CSV or even XLS format.</p>
+		<p>You have the possibility to duplicate your current work with the « Duplicate base » button. With a duplication, you can work on a new version of your current database without losing it the initial data.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_export.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_export.png"></a>
+
+		<p>You can also share your work with other people. Click on « Share » menu. Then, click on Share button to activate the public sharing. You will obtain an admin link (useful to access the
+		database later). You should keep it for yourself. </p>
+		<p>You will also get a « public » link. Share it with other people. They will access to your database in a « read-only » mode. They will not be allowed to modify anything. However, they can use the « duplicate » button and then work with full permissions on their own copy of your database.</p>
+		<a href="{{ app.request.basepath }}/images/help/me_share.png"><img class="thumbnail" src="{{ app.request.basepath }}/images/help/me_share.png"></a>
+
+</div>
+
+{% endblock %}
