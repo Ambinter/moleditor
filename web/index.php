@@ -335,11 +335,12 @@ $app->match('/import-external/{dbname}', function ($dbname) use ($app) {
     $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
     $app['session']->set('modal', 'import');
     
-    $path = __DIR__.'/../src/tmp/'. $dbname.'.sdf';
+    $path = __DIR__.'/../src/tmp/'. $hash.'.sdf';
     rename(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path);
     $app['session']->set('import_ext', 1);
     return $app->redirect('/moleditor/web/import2/'.$private);           
 })->bind('import_ext');
+
 
 // importation step 2 : get and select tags
 $app->match('/import2/{key}', function ($key) use ($app) {
@@ -358,7 +359,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
     {
 	$app['session']->getFlashBag()->add(
 	    'danger',
-	    'Upload problem, the file does not exit!'
+	    'Upload problem, the file does not exist!'
 	);
 	return $app->redirect('/moleditor/web/');           
     }
@@ -2433,6 +2434,10 @@ $app->match('/database/{key}/copy', function ($key) use ($app) {
 $app->match('/learn-more', function () use ($app) {
     return $app['twig']->render('learnMore.twig');
 })->bind('learnMore');
+// page help
+$app->match('/help', function () use ($app) {
+return $app['twig']->render('help.twig');
+})->bind('help');
 // page about-us
 $app->match('/about-us', function () use ($app) {
 return $app['twig']->render('aboutUs.twig');
