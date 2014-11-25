@@ -2628,20 +2628,31 @@ $app->match('{key}/workflow', function ($key) use ($app) {
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
 	$id=$tab['id'];
-	$grep=preg_grep('/M\s+END/', file($tab['path']));
-
-	$filter='';
-	if ($tab['filter'])
+	if (is_file($tab['path']))
 	{
-	    $filter= json_decode($tab['filter'], true);
+	    $grep=preg_grep('/M\s+END/', file($tab['path']));
+	    
+	    $filter='';
+	    if ($tab['filter'])
+	    {
+		$filter= json_decode($tab['filter'], true);
+	    }
+
+	    $deep= substr_count ( $tab['parent'] , '-')/2;
+
+	    $parent=trim(str_replace('--', '-', $tab['parent']),'-');
+
+	    $newtree[$parent.'-'.$id]=array('deep'=>$deep, 'id'=>$id, 'nb'=>count($grep), 'filter'=>$filter);
+	    ksort($newtree, SORT_NATURAL);
 	}
-
-	$deep= substr_count ( $tab['parent'] , '-')/2;
-
-	$parent=trim(str_replace('--', '-', $tab['parent']),'-');
-
-	$newtree[$parent.'-'.$id]=array('deep'=>$deep, 'id'=>$id, 'nb'=>count($grep), 'filter'=>$filter);
-	ksort($newtree, SORT_NATURAL);
+	else
+	{
+	    $app['session']->getFlashBag()->add(
+			'danger',
+			'Error when creating workflow !'
+		    );
+	    return $app->redirect('/moleditor/web/display/'.$key);
+	}
     }
 
     return $app['twig']->render('workflow.twig', array(
