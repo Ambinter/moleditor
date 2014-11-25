@@ -9,6 +9,7 @@
 	<div class="col-lg-6">
 		<div class="input-group">
 			{{form_widget(formsearch.search)}}
+			{{form_widget(formsearch.search2)}}
 			<span class="input-group-btn">
 				<button type="input" class="btn btn-sm btn-primary" name="validsearch"><span class="glyphicon glyphicon-search"></span></button>
 			</span>
@@ -22,6 +23,7 @@
 </form>
 	<script>
 		$(".numeric").hide();
+		$(".search_range").hide();
 		{% for alias, coltype in coltypes %}
 			coltype["{{alias}}"]="{{coltype}}";
 		{% endfor %}
@@ -29,5 +31,16 @@
 			var colalias = $("#coltype option:selected").val();
 			$("."+coltype[colalias]).show();
 			$(".hide-"+coltype[colalias]).hide();
+		});
+		
+		$("#form_searchtypenumeric").change(function(){
+			if ($("#form_searchtypenumeric option:selected").val()=='between')
+			{
+				$(".search_range").show();
+			}
+			else
+			{
+				$(".search_range").hide();
+			}
 		});
 	</script>

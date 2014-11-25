@@ -1,0 +1,138 @@
+.newtree ul,.newtree li {
+	padding:0;
+	display: table-cell;
+	position:relative;
+	text-align: center;
+}
+
+.newtree li::before, .newtree li::after{
+	content:"";
+	width: 50%;
+	height: 2.6em;
+	border-top:1px solid #3F6DB4;
+	top:0;
+	position:absolute;
+}
+
+.newtree li:only-child::after, .newtree li:only-child::before{
+	border-top:none;
+}
+
+.newtree ul:first-child::before  {
+	border-left:none;
+}
+.newtree ul:first-child > li::before  {
+	border-left:none;
+	
+}
+
+.newtree li:last-child::before  {
+	border-top:none;
+	
+}
+
+.newtree li::after  {
+    left:0;
+    width:50%;
+	border-top:1px solid #3F6DB4;
+}
+.newtree li:first-child::after  {
+	border:none;
+}
+
+
+.newtree li::before {
+	content:"";
+	top: 0; 
+	left:50%;
+    border-left: 1px solid #3F6DB4;
+}
+
+.newtree ul::before  {
+	content:"";
+	width: 100%;
+	height: 1em;
+	top:-1em;
+	position:absolute;
+    border-left: 1px solid #3F6DB4;
+    z-index:2;
+}
+
+
+
+
+
+.file {
+	width:6em;
+	height:5em;
+	border-radius:4px;
+	box-shadow:0 0 1px grey;
+	display:inline-block;
+	margin:1em;
+}
+
+.file > div {
+	padding:0.1em;
+	text-align:center;
+}
+
+.file .head {
+	background:#F5F5F5;
+	border-bottom:1px solid #3F6DB4;
+	color:#3F6DB4;
+	padding-bottom:0em;
+	font-weight:bold;
+}
+
+.file .body {
+	font-size:0.9em;
+}
+
+.file .foot {
+	text-align:right;
+	padding-right:0.2em;
+}
+
+
+
+.filter {
+	padding-top:0.35em;
+	opacity:0.9;
+	z-index:1;
+	margin-top:0.5em;
+	z-index:3;
+}
+
+
+
+.file:hover {
+	box-shadow: 0px 0px 5px #68B657;
+}
+
+/*.file:hover+ul li .file  {
+	box-shadow: 0px 0px 1px #68B657;
+	
+}
+
+.file:hover+ul li .filter span {
+	background-color:#68B657;
+}
+.file:hover, .file:hover+ul ul::before, .file:hover+ul::before, .file:hover+ul li::before, .file:hover+ul li::after {
+	border-color:#68B657;
+	border-width:2px;
+	
+}
+*/
+
+.filter-selection  {
+	list-style:none;
+}
+
+.form-filter .form>div  {
+	width:33%;
+	display:inline-block;
+}
+.form-filter input[type="checkbox"] {
+	margin-left:0.5em;
+	vertical-align:top;
+}

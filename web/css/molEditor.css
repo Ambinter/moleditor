@@ -221,7 +221,12 @@ textarea {
 	vertical-align:middle;
 	margin-right:0.3rem;
 	box-shadow:0px 0px 3px;
+	text-decoration:none;
 	cursor:pointer;
+
+}
+.onoff:hover, .onoff:visited {
+	text-decoration:none;
 }
 .spin {
 	display:inline-block;
@@ -258,3 +263,4 @@ textarea {
 .valignb {
 	vertical-align:bottom;
 }
+

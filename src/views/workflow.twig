@@ -1,0 +1,100 @@
+{% extends "layout.twig" %}
+    {%block morecss %}
+		<link href="{{ app.request.basepath }}/css/workflow.css" rel="stylesheet" media="screen">
+    {%endblock%}
+
+{%block content%}
+
+<div class="modal fade" id="filter" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true"></div>
+<div class="modal fade" id="filter-select" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true"></div>
+
+{% set filter_resume='' %}
+
+<a class="pull-right btn btn-warning btn-large" href="{{path('display', {'key':key })}}">Return to MolEditor</a>
+
+<div class="newtree">
+
+		{%set prevdeep=-1 %}
+	
+		{% for path, node in newtree %}
+			{% if node.deep>prevdeep %}
+				<ul><li>
+			{% elseif node.deep<prevdeep %}
+				{%for i in 0 .. (prevdeep-node.deep-1)%}
+					</li></ul></li>
+				{% endfor %}
+				<li>
+				{% else %}
+					<li>
+			{% endif %}
+				{% set filter_resume='' %}
+					<div class="filter">
+					{% if node.filter  %}
+						<span class="label label-default ">
+							{% for ftype, ftab in node.filter %}
+								{% set filter_resume= filter_resume ~';'~ftype ~':'%}
+								{% for fshort, flong in ftab %}
+									{% set filter_resume=filter_resume ~' '~ fshort %}
+								{% endfor %}
+								{{ftab|join(', ')}}
+							{% endfor %}
+						</span>
+					{% endif %}
+					</div>
+					<div class="file">
+			
+
+					<div class="head">
+						{% if loop.index == 1 %}
+							<a title="Return to MolEditor" class="open" href="{{path('display', {'key':key })}}">
+						{% else %}
+							<a class="open" title="Open in MolEditor" href="{{path('workflow-open-file', {'key':key, 'id':node.id })}}">
+						{% endif %}
+						<i class="glyphicon glyphicon-file"></i> File {{node.id}}
+						</a>
+					</div>
+
+					<div class="body">
+						<span>{{node.nb}}</span>
+						
+						{% if node.nb>1 %}
+							mols
+						{% else %}
+							mol
+						{% endif %}
+					</div>
+				
+					<div class="foot">
+						<a class="open" title="Download the file" href="{{path('workflow-dl', {'key':key, 'id':node.id })}}"><i class="marginl pull-left glyphicon glyphicon-download-alt"></i></a>
+						<a title="Click to add a new filter" class="open  " data-toggle="modal" href="{{ path ('workflow-filter-select', {'key': key, 'id':node.id }) }}" data-target="#filter-select"><span class="glyphicon glyphicon-plus-sign"></span></a>
+
+						{% if node.deep != 0 %}
+							<a class="trash " title="delete this file" href="{{path('workflow-delete-file', {'key':key, 'id':node.id })}}"><i class="glyphicon glyphicon-trash"></i></a>
+						{% endif %}
+					</div>
+				</div>
+
+
+			{%set prevdeep=node.deep %}
+
+		{% endfor%}
+		</ul>
+</div>
+
+{#
+	{% if filter_resume %}
+		<hr/>
+		<div class="panel panel-info">
+			<div class="panel-heading">
+				<h3 class="panel-title">Workflow output</h3>
+			</div>
+			 <div class="panel-body">
+				{{filter_resume}}
+			</div>
+		</div>
+	{% endif %}
+#}
+
+{%endblock%}
+
+

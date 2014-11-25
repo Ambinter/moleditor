@@ -34,6 +34,7 @@
 	{{ render(path('search', {'key': key})) }}
 </div>
 
+	
 <div class="col-md-3">
 	{% set pageup = app.session.get('config').offset +1 %}
 	{% set pagedown = app.session.get('config').offset -1 %}
@@ -58,7 +59,24 @@
 			  <span class="glyphicon glyphicon-th"></span>
 		</a>
 	</div>
+
+	{% if parentKey %}
+		<a href="{{path('workflow-export', {'key':parentKey})}}" class="btn btn-warning">Workflow</a>
+		{#<a href="{{path('workflow-export', {'key':key})}}" class="btn btn-sm btn-warning">New Workflow</a>#}
+	{% else %}
+		<a href="{{path('workflow-export', {'key':key})}}" class="btn btn-warning">Workflow</a>
+	{% endif %}
 </div>
+
+	<div class="pull-right">
+		<span title="Commercial availability on Ambinter.com" class="help text-info">Availability</span> <a  class=" onoff " href="{{ path ('check-availability', {'key':key, 'place':'index'}) }}">
+		{%if app.session.get('availability')==1 %}
+		<span class="spin on"></span>
+		{% else %}
+		<span class="spin off"></span>
+		{% endif %}
+	</a>
+	</div>
 
 <hr/>
 
@@ -81,7 +99,7 @@
 						{% set sorttype='order' %}
 					{% endif %}					
 					
-					{% if colhead.name=='structure' %}
+					{% if colhead.name=='structure' and (keytype=='private') %}
 						<a title="Click to add a new structure" class="pull-right " data-toggle="modal" href="{{ path ('ketcher', {'key': key, 'id':'new' }) }}" data-target="#ketcher"><span class="glyphicon glyphicon-plus"></span></a>
 						{{ colhead.name }}
 

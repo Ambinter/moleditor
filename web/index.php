@@ -25,6 +25,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 use MolEditor\Depict;
 use MolEditor\Babel;
 use MolEditor\Access;
+use MolEditor\Filter;
+use MolEditor\FilterClean;
+use MolEditor\FilterSearch;
 
 require_once __DIR__.'/../vendor/autoload.php';
 $app = new Silex\Application();
@@ -45,7 +48,7 @@ $app->register(new Silex\Provider\ValidatorServiceProvider());
 $app->register(new Silex\Provider\TranslationServiceProvider(), array(
     'translator.messages' => array(),
 ));
-
+$app->register(new Silex\Provider\UrlGeneratorServiceProvider());
 // Doctrine for SQLite 
 $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
     'db.options' => array(
@@ -70,12 +73,85 @@ $app['depict'] = $app->share(function () {
 $app['babel'] = $app->share(function () {
     return new Babel();
 });
+$app['filterBasic'] = $app->share(function ($app) {
+    return new Filter($app);
+});
+$app['filterClean'] = $app->share(function ($app) {
+    return new FilterClean($app);
+});
+$app['filterSearch'] = $app->share(function ($app) {
+    return new FilterSearch($app);
+});
 $app['access'] = $app->share(function ($app) {
     return new Access($app);
 });
 
 
 #### CONTROLLERS ####
+// installation script
+$app->match('/install-filters', function () use ($app) {
+    $app['db']->executeQuery('DROP TABLE IF EXISTS filter ');
+    
+    $filters['MW']= array('longfiltername' => 'Molecular weight',
+			  'formtype'       => 'Range',
+			  'param'       => 'MW',
+			  'classtype'      => 'Basic');
+    $filters['logP']= array('longfiltername' => 'logP',
+			  'formtype'       => 'Range',
+			  'param'       => 'logP',
+			  'classtype'      => 'Basic');	
+    $filters['acceptor']= array('longfiltername' => 'Acceptors',
+			  'formtype'       => 'Range',
+			  'param'       => 'HBA2',
+			  'classtype'      => 'Basic');
+    $filters['donor']= array('longfiltername' => 'Donors',
+			  'formtype'       => 'Range',
+			  'param'       => 'HBD',
+			  'classtype'      => 'Basic');
+    $filters['molarref']= array('longfiltername' => 'Molar Refractivity',
+			  'formtype'       => 'Range',
+			  'param'       => 'MR',
+			  'classtype'      => 'Basic');
+    $filters['tpsa']= array('longfiltername' => 'Topological polar surface area (TPSA)',
+			  'formtype'       => 'Range',
+			  'param'       => 'TPSA',
+			  'classtype'      => 'Basic');
+    $filters['lipinski']= array('longfiltername' => 'Lipinski Rule of Five',
+			  'formtype'       => 'Checkbox',
+			  'param'       => 'L5',
+			  'classtype'      => 'Basic');
+    $filters['stripsalt']= array('longfiltername' => 'Strip Salt',
+			  'formtype'       => 'Checkbox',
+			  'param'       => '-r',
+			  'classtype'      => 'Clean');
+    $filters['Duplicates']= array('longfiltername' => 'Remove duplicates',
+			  'formtype'       => 'Checkbox',
+			  'param'       => '--unique',
+			  'classtype'      => 'Clean');
+    $filters['SMART Search']= array('longfiltername' => 'Filter by SMART pattern',
+			  'formtype'       => 'Input',
+			  'param'       => '-s',
+			  'classtype'      => 'Search');
+			  
+    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS filter (filtername VARCHAR(50), longfiltername VARCHAR(255), formtype VARCHAR(50), param VARCHAR(50), classtype VARCHAR(50))');
+    foreach ($filters as $filtername=>$filter)
+    {
+	$req = $app['db']->prepare('INSERT INTO filter (filtername, longfiltername, formtype, param, classtype) VALUES (:filtername, :longfiltername, :formtype, :param, :classtype)');
+	$req->bindValue(':filtername', $filtername);
+	$req->bindValue(':longfiltername', $filter['longfiltername']);
+	$req->bindValue(':param', $filter['param']);
+	$req->bindValue(':formtype', $filter['formtype']);
+	$req->bindValue(':classtype', $filter['classtype']);
+	$req->execute();
+    }
+    $app['session']->getFlashBag()->add(
+	'success',
+	'Reinstallation succeed !'
+    );
+    
+
+    return $app->redirect('/moleditor/web/');           
+})->bind('install');
 
 
 // form for database creation
@@ -83,7 +159,8 @@ $app->match('/', function () use ($app) {
     $app['session']->set('config', '');
 
     // creation (if not exists yet) of user_table which contains all created table names with session infos, public_address and user id
-    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS user_db (dbname VARCHAR(100), hash VARCHAR(255), private VARCHAR(255), public VARCHAR(255), session VARCHAR(255), username_id INT)');
+    
+    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS user_db (dbname VARCHAR(100), hash VARCHAR(255), private VARCHAR(255), public VARCHAR(255), parent_key VARCHAR(255), session VARCHAR(255), username_id INT)');
 
     $form = $app['form.factory']->createBuilder('form')
         ->add('dbname', 'text', array('attr'=>array('placeholder'=>'myFirstBase',
@@ -109,10 +186,11 @@ $app->match('/', function () use ($app) {
 	    $results = $app['db']->executeQuery('DROP TABLE IF EXISTS '.$hash.'_sdf ');
 	    $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
 
-	    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+	    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, parent_key, session, username_id) VALUES (:dbname, :hash, :public, :private, :parentKey, :session, :username_id)');
 	    $req->bindValue(':hash', $hash);
 	    $req->bindValue(':private', $private);
 	    $req->bindValue(':public', '');
+	    $req->bindValue(':parentKey', '');
 	    $req->bindValue(':session', $app['session']->getId());
 	    $req->bindValue(':dbname', $dbname);
 	    $req->execute();
@@ -146,7 +224,7 @@ $app->match('/dbname/{key}', function ($key) use ($app) {
 
 // List of current database of user (displayed in header navbar)
 $app->match('/db/list', function () use ($app) {
-    $req = $app['db']->prepare('SELECT dbname, private FROM user_db WHERE session=:session ORDER BY dbname');
+    $req = $app['db']->prepare('SELECT dbname, private FROM user_db WHERE session=:session AND parent_key="" ORDER BY dbname');
     $req->bindValue(':session', $app['session']->getId());
     $res=$req->execute();
     $dbs='';
@@ -319,15 +397,17 @@ $app->match('/import/{key}', function ($key) use ($app) {
     ));
 })->bind('import');
 
-// importation from external : file should be send to /src/tmp, then renamed with apropriate name
-$app->match('/import-external/{dbname}', function ($dbname) use ($app) {
 
-    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+// importation from external : file should be send to /src/tmp, then renamed with apropriate name
+$app->match('/import-external/{dbname}/{parentKey}', function ($dbname, $parentKey=null) use ($app) {
+    $dbname=urldecode($dbname);
+    $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, parent_key, session, username_id) VALUES (:dbname, :hash, :public, :private, :parentKey, :session, :username_id)');
     $hash= 'ME'.hash('sha256', $dbname.rand(0,100000));
     $private=hash('adler32', $hash.rand(0,100000));
     $req->bindValue(':hash', $hash);
     $req->bindValue(':private', $private);
     $req->bindValue(':public', '');
+    $req->bindValue(':parentKey', $parentKey);
     $req->bindValue(':session', $app['session']->getId());
     $req->bindValue(':dbname', $dbname);
     $req->execute();
@@ -336,7 +416,7 @@ $app->match('/import-external/{dbname}', function ($dbname) use ($app) {
     $app['session']->set('modal', 'import');
     
     $path = __DIR__.'/../src/tmp/'. $hash.'.sdf';
-    rename(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path);
+    copy(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path) or die ('impossible copy');
     $app['session']->set('import_ext', 1);
     return $app->redirect('/moleditor/web/import2/'.$private);           
 })->bind('import_ext');
@@ -917,11 +997,13 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 
     // form (dynamic according to column type, numeric or text)
     $builder = $app['form.factory']->createBuilder('form', $datasearch);
-    $builder->add('searchtypenumeric', 'choice', array('choices'=>array('sup'=>'>', 'supe'=>'>=', 'exact'=>'=','infe'=>'<=', 'inf'=>'<')));
+    $builder->add('searchtypenumeric', 'choice', array('choices'=>array('sup'=>'>', 'supe'=>'>=', 'exact'=>'=','infe'=>'<=', 'inf'=>'<', 'between'=>'Range')));
     $builder->add('searchtypetext', 'choice', array('choices'=>array('start'=>'Start with', 'contain'=>'Contain', 'end'=>'End with','exact'=>'Exact')));
     
     $builder->add('col', 'choice', array('choices'=>$colselect))
-	    ->add('search', 'search', array('attr'=>array('class'=>'input-sm form-control')));
+	    ->add('search', 'search', array('attr'=>array('class'=>'input-sm form-control search_main')))
+	    ->add('search2', 'search', array('required'=>false,
+					     'attr'=>array('class'=>'input-sm form-control search_range')));
     $formsearch = $builder->getForm();
     
     if ($request->isMethod('POST'))
@@ -931,8 +1013,9 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 	{
 	    $data = $formsearch->getData();
 	    $search=$data['search'];
+
 	    $col=$data['col'];
-	    $searchNum=$searchText='';
+	    $searchNum=$searchText=$search2='';
 
 	    $colType=$tabcoltype[$col];
 
@@ -974,6 +1057,12 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 		{
 		    $searchEq = '<=';		    
 		}
+		if($searchType == 'between')
+		{
+		    $searchEq = 'BETWEEN';
+		    $search2=' AND ' .$data['search2'];
+    
+		}
 		
 		if ($colType=='text')
 		{
@@ -983,8 +1072,7 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 		{
 		    $col = 'CAST('.$col.' AS INT)';
 		}	
-		$clausewhere = 'WHERE '.$col.' '.$searchEq.' '.$search;
-		//echo $clausewhere;
+		$clausewhere = 'WHERE '.$col.' '.$searchEq.' '.$search.$search2;
 
 		// enregistrement de la clausewhere dans les var de session
 		$config['offset']=0;
@@ -1102,6 +1190,7 @@ $app->match('/edit-val/{key}/{id}/{col}', function ($key, $id, $col) use ($app) 
 })
 ->bind('editVal');
 
+
 // Database display (in HTML Table)
 $app->match('/display/{key}', function ($key) use ($app) {
     $hash=$app['access']->getHash($key);
@@ -1115,6 +1204,16 @@ $app->match('/display/{key}', function ($key) use ($app) {
 	    );
 	return $app->redirect('/moleditor/web/');           
     }
+
+    $req = $app['db']->prepare('SELECT parent_key FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    $parentKey='';
+    while ($tab = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$parentKey=$tab['parent_key'];
+    }
+
     // Session variable initialization
     if ($app['session']->get('config') === null)
     {
@@ -1164,21 +1263,6 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }
 
     $request = $app['request'];
-
-    //// if one cell update
-    //if ($request->isMethod('POST'))
-    //{
-	//$id=$request->get('id');
-	//$col=$request->get('col');
-	//if ($id && $col)
-	//{
-	    //$newval=$request->get('newval');
-	    //$req = $app['db']->prepare('UPDATE '.$hash.'_sdf SET '.$col.'=:newval WHERE id=:id');
-	    //$req->bindValue(':id', ($id));
-	    //$req->bindValue(':newval', $newval);
-	    //$res=$req->execute();
-	//}
-    //}
 
     // Session variables management (before search)
     if (!isset($config['offset']))
@@ -1280,7 +1364,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }
     
     return $app['twig']->render('sdf.twig', array(
-	'key'=>$key, 'keytype'=>$keytype, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
+	'key'=>$key, 'parentKey'=>$parentKey, 'keytype'=>$keytype, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
     ));
 })
 ->bind('display');
@@ -1587,7 +1671,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 	if ($type=='csv')
 	{
 	    $smiles = $app['depict']->getSmiles("\n".$colstruct."\n$$$$");
-	    $csv.='"'.$colheader.'","'.$smiles.'"';
+	    $csv.='"'.$colheader.'","'.trim($smiles).'"';
 	}
 	if ($type=='smi')
 	{
@@ -2328,7 +2412,7 @@ $app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
 
 
 // Form to enable or disable checking of availability
-$app->match('/check-availability/{key}', function ($key) use ($app) {
+$app->match('/check-availability/{key}/{place}', function ($key, $place) use ($app) {
     $av = $app['session']->get('availability');
     if ($av)
     {
@@ -2338,7 +2422,14 @@ $app->match('/check-availability/{key}', function ($key) use ($app) {
     {
 	$app['session']->set('availability', 1);
     }
-    return $app->redirect('/moleditor/web/column-management/'.$key);           
+    if ($place=='index')
+    {
+	return $app->redirect('/moleditor/web/display/'.$key);           
+    }
+    elseif ($place=='col')
+    {
+	return $app->redirect('/moleditor/web/column-management/'.$key);           
+    }
 })->bind('check-availability');
 
 
@@ -2409,10 +2500,11 @@ $app->match('/database/{key}/copy', function ($key) use ($app) {
 	$newhash= 'ME'.hash('sha256', $dbname.rand(0,100000));
 	$private=hash('adler32', $hash.rand(0,100000));
 		
-	$req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, session, username_id) VALUES (:dbname, :hash, :public, :private, :session, :username_id)');
+	$req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, parent_key, session, username_id) VALUES (:dbname, :hash, :public, :private, :parentKey, :session, :username_id)');
 	$req->bindValue(':hash', $newhash);
 	$req->bindValue(':private', $private);
 	$req->bindValue(':public', '');
+	$req->bindValue(':parentKey', '');
 	$req->bindValue(':session', $app['session']->getId());
 	$req->bindValue(':dbname', $dbname);
 	$req->execute();
@@ -2427,6 +2519,278 @@ $app->match('/database/{key}/copy', function ($key) use ($app) {
     }
     return $app->redirect('/moleditor/web/display/'.$private);           
 })->bind('dbcopy');
+
+
+
+
+#### WORKFLOW VIEW ####
+
+// Exportation form
+$app->get('/workflow/export/{key}', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+
+    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$dbname=$row['dbname'];
+    }
+
+    // get session variable
+    $config=$app['session']->get('config');
+   
+    $columns = array();
+    
+    $req = $app['db']->executeQuery('SELECT column_name, alias,column_order,coltype FROM '.$hash.'_columns ORDER BY column_order');
+    $result = $req->fetchAll();
+    $alias = array();
+    $sdf=$csv='';
+    foreach ($result as $row)
+    {
+        // Get the column name from the results
+        $row_name=$row['column_name'];
+        $columns[$row_name] = $row_name;
+        $alias[$row_name] = 'col'.$row['alias'];
+        $rowalias='col'.$row['alias'];
+        $coltype[$rowalias] = $row['coltype'];
+        $inv_alias[$rowalias] = $row_name;
+    }
+
+    // add_col fix if no tag in SDF
+    $add_col='';
+    if ($alias)
+    {
+	$add_col=','.implode(',',array_values($alias));
+    }
+    
+    // get the column type (numeric ou text)
+    $req = $app['db']->prepare('SELECT structure, header'.$add_col.' FROM '.$hash.'_sdf ');
+
+    $res=$req->execute();
+    $j=2;
+    while ($tab = $req->fetch(PDO::FETCH_ASSOC))
+    {
+        $colheader= $tab['header'];
+        $colstruct= $tab['structure'];
+        $sdf.= $colheader."\n";
+        $sdf.= $colstruct."\n";
+        unset($tab['header']);
+        unset($tab['structure']);
+	
+	$i=2;
+        foreach ($tab as $tag=>$val)
+        {
+            $sdf.='>	<'.$inv_alias[$tag].">\n";
+            $sdf.=$val."\n\n";
+	    $i++;
+        }
+	$j++;
+        $sdf.="$$$$\n";
+    }
+    
+    // creation of exported file    
+    $filename = __DIR__.'/../src/workflow/'.$dbname.'.sdf';
+    $f = fopen ($filename, 'w+');
+	fwrite ($f, $sdf);
+    fclose($f);
+    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS workflow_file (id INTEGER PRIMARY KEY AUTOINCREMENT, path VARCHAR(255), hash VARCHAR(255), parent INT, filter VARCHAR(255))');
+  //  $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS workflow_link (id INTEGER PRIMARY KEY AUTOINCREMENT, parent INT, child INT, filter VARCHAR(255))');
+
+    $req = $app['db']->prepare('SELECT count(*) nb FROM workflow_file WHERE path=:path AND hash=:hash');
+    $req->bindValue(':hash', $hash);
+    $req->bindValue(':path', $filename);
+    $req->execute();
+    $tab = $req->fetch(PDO::FETCH_ASSOC);
+    if (!$tab['nb'])
+    {
+	$req = $app['db']->prepare('INSERT INTO workflow_file (path, hash) VALUES ( :path, :hash)');
+	$req->bindValue(':hash', $hash);
+	$req->bindValue(':path', $filename);
+	$req->execute();
+    }
+    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+})->bind('workflow-export');
+
+// display workflow
+$app->match('{key}/workflow', function ($key) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+
+    // get first file of workflow
+    $id=$workflow='';
+
+    
+    $req = $app['db']->prepare('SELECT id, path, parent, filter FROM workflow_file WHERE hash=:hash ORDER BY parent ASC, id ASC ');
+    $req->bindValue(':hash', $hash);
+    $res=$req->execute();
+    $grep=$wide=0;
+    while ($tab = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$id=$tab['id'];
+	$grep=preg_grep('/M\s+END/', file($tab['path']));
+
+	$filter='';
+	if ($tab['filter'])
+	{
+	    $filter= json_decode($tab['filter'], true);
+	}
+
+	$deep= substr_count ( $tab['parent'] , '-')/2;
+
+	$parent=trim(str_replace('--', '-', $tab['parent']),'-');
+
+	$newtree[$parent.'-'.$id]=array('deep'=>$deep, 'id'=>$id, 'nb'=>count($grep), 'filter'=>$filter);
+	ksort($newtree, SORT_NATURAL);
+    }
+
+    return $app['twig']->render('workflow.twig', array(
+	'key'=>$key, 'keytype'=>$keytype, 'newtree'=>$newtree
+    ));
+})->bind('workflow');
+
+$app->match('{key}/workflow/filter-select/{id}', function ($key,$id) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+    
+    $req = $app['db']->executeQuery('SELECT filtername, longfiltername, formtype, param, classtype FROM filter ORDER BY longfiltername ASC');
+    while ($tab = $req->fetch(\PDO::FETCH_ASSOC))
+    {
+	$filter['filtername']=$tab['filtername'];
+	$filter['longfiltername']=$tab['longfiltername'];
+	$filter['param']=$tab['param'];
+	$filter['formtype']=$tab['formtype'];
+	$filter['classtype']=$tab['classtype'];
+	$filterclasstype=$tab['classtype'];
+	$filters[$filterclasstype][]=$filter;
+    }
+    asort($filters);
+    $request = $app['request'];
+    return $app['twig']->render('workflowFilterSelect.twig', array(
+	 'key'=>$key, 'id'=>$id, 'filters'=>$filters
+    ));
+
+
+})->bind('workflow-filter-select');
+
+
+$app->match('{key}/workflow/filter/{id}/{filtername}', function ($key,$id,$filtername) use ($app) {
+
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+    
+    $req = $app['db']->prepare('SELECT filtername, longfiltername, formtype, param, classtype FROM filter WHERE filtername=:filtername');
+    $req->bindValue(':filtername', $filtername);
+    $req->execute();
+    while ($tab = $req->fetch(\PDO::FETCH_ASSOC))
+    {
+	$filter['filtername']=$tab['filtername'];
+	$filter['longfiltername']=$tab['longfiltername'];
+	$filter['param']=$tab['param'];
+	$filter['formtype']=$tab['formtype'];
+	$filter['classtype']=$tab['classtype'];
+    }
+    $classtype='filter'.$filter['classtype'];
+    $formtype='getForm'.$filter['formtype'];
+    
+    $form = $app[$classtype]->$formtype($key, $id, $filtername);
+
+    $request = $app['request'];
+    if ($request->isMethod('POST'))
+    {
+        $form->bind($request);
+        if ($form->isValid())
+        {
+	    $data = $form->getData();
+        
+    	    $app[$classtype]->setInput($id);
+	    $app[$classtype]->setFilter($filter, $data);
+	    $output=$app[$classtype]->apply();
+	    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+	}
+    }
+
+    return $app['twig']->render('workflowFilter.twig', array(
+	'form'=>$form->createView(), 'key'=>$key, 'filter'=>$filter
+    ));
+})->bind('workflow-filter');
+
+
+// effacer un fichier
+$app->match('{key}/workflow/delete-file/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+
+	$req = $app['db']->prepare('DELETE FROM workflow_file WHERE id=:id AND hash=:hash');
+	$req->bindValue(':id', $id);
+	$req->bindValue(':hash', $hash);
+	$res=$req->execute();
+	$parent=$id;
+	
+	$req = $app['db']->prepare('DELETE FROM workflow_file WHERE parent LIKE :parent');
+	$req->bindValue(':parent', '%-'.$id.'-%');
+	$res=$req->execute();
+	return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+	
+    
+})->bind('workflow-delete-file');
+
+$app->match('{key}/workflow/open/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $keytype=$app['access']->getKeyType($key);
+    $req = $app['db']->prepare('SELECT id, path FROM workflow_file WHERE hash=:hash AND id=:id');
+    $req->bindValue(':hash', $hash);
+    $req->bindValue(':id', $id);
+    $res=$req->execute();
+    while ($tab = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$path=$tab['path'];
+    }
+    if (is_file($path))
+    {
+	$dbname=basename($path, '.sdf');
+	$newpath = __DIR__.'/../src/tmp/'. basename($path);
+	copy($path, $newpath) or die ('impossible copy');
+
+	//copy($path, dir'../tmp/'.basename($path));
+	return $app->redirect($app['url_generator']->generate('import_ext', array('dbname'=>urlencode($dbname), 'parentKey'=>$key)));           
+    }
+    //~ return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+})->bind('workflow-open-file');
+
+
+
+// direct download  of a file in the workflow
+$app->match('{key}/workflow/download/{id}', function ($key, $id) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $req = $app['db']->prepare('SELECT id, path FROM workflow_file WHERE hash=:hash AND id=:id');
+    $req->bindValue(':hash', $hash);
+    $req->bindValue(':id', $id);
+    $res=$req->execute();
+    while ($tab = $req->fetch(PDO::FETCH_ASSOC))
+    {
+	$path=$tab['path'];
+    
+	if (is_file($path))
+	{
+	    $stream = function () use ($path) {
+		readfile($path);
+	    };
+	    return $app->stream($stream, 200, array(
+		'Content-Type' => mime_content_type($path),
+		'Content-Disposition' => 'attachment; filename="'.basename($path).'"'	
+		));
+	}
+    }
+    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+})->bind('workflow-dl');
+
+
+
+
+
+
+
 
 
 ## MOLEDITOR WEBSITE PAGES ##

@@ -67,7 +67,7 @@
 
 
 				<hr/>
-					<div id="checkav"" class=" onoff pull-right" href="{{ path ('check-availability', {'key':key}) }}">
+					<div id="checkav" class=" onoff pull-right" href="{{ path ('check-availability', {'key':key, 'place':'col'}) }}">
 						{%if app.session.get('availability')==1 %}
 						<span class="spin on"></span>
 						{% else %}
@@ -77,7 +77,7 @@
 					<h4 class="text-info">Check availability</h4>
 					<script>
 						$("#checkav").click(function(){
-							$("#colManagement").load("{{ path ('check-availability', {'key':key}) }}");
+							$("#colManagement").load("{{ path ('check-availability', {'key':key, 'place':'col'}) }}");
 						});
 					</script>
 				<p>

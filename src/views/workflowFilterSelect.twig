@@ -1,0 +1,65 @@
+	  <div class="modal-dialog">
+		<div class="modal-content">
+		  <div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+			<h4 class="modal-title"><span class="glyphicon glyphicon-filter"></span> Filter Select</h4>
+		  </div>
+		  
+		  <div class="modal-body">
+
+			<div class="alert alert-info">Choose a filter category below, then a filter to apply</div>
+
+			<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true" >
+
+				 <div class="panel panel-default">
+			
+				{% for  filtertype,filtertab  in filters %}
+					<div class="panel-heading" role="tab" id="heading{{filtertype}}">
+					  
+						<a data-toggle="collapse" data-parent="#accordion" href="#collapse{{filtertype}}" aria-expanded="false" aria-controls="collapse{{filtertype}}">
+						  <h4 class="panel-title">{{filtertype}}</h4>
+						</a>
+					  
+					</div>
+
+					<div id="collapse{{filtertype}}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading{{filtertype}}">
+						<div class="panel-body">
+							<ul class="filter-selection">
+								{% for filter in filtertab %}
+									<li>
+										<a id="filterlink" title="Click to add a new filter" class="margint btn btn-default" data-toggle="modal" href="{{ path ('workflow-filter', {'key': key, 'id':id, 'filtername':filter.filtername }) }}" data-target="#filter">{{filter.longfiltername}}</a>
+									</li>
+								{% endfor%}
+							</ul>
+						</div>					
+					</div>					
+				{% endfor%}
+				</div>					
+
+				{#<p>
+					<a id="filterlink" title="Click to add a new filter" class="margint btn btn-info " data-toggle="modal" href="{{ path ('workflow-filter', {'key': key, 'id':id, 'type':'filterBasic' }) }}" data-target="#filter"><span class="glyphicon glyphicon-filter"></span> Basic filter</a> 
+					MW, logP, donors, acceptors...
+				</p>
+				
+				<p>
+				<a id="filterlink" title="Click to add a new filter" class="margint btn btn-info  " data-toggle="modal" href="{{ path ('workflow-filter', {'key': key, 'id':id, 'type':'filterClean' }) }}" data-target="#filter"><span class="glyphicon glyphicon-ok"></span> Clean filter</a>
+					Add or delete hydrogens, strip salts, remove duplicates...
+				</p>
+				
+				<a id="filterlink" title="Click to add a new filter" class="margint btn btn-info  " data-toggle="modal" href="{{ path ('workflow-filter', {'key': key, 'id':id, 'type':'filterSearch' }) }}" data-target="#filter"><span class="glyphicon glyphicon-search"></span> Structural search filter</a>
+					Substructure search via SMARTS
+				</p>
+				#}
+		  </div>
+		  <div class="modal-footer">
+			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		  </div>
+		</div>
+	  </div>
+	  <script>
+		$('#filter').on('show.bs.modal', function (e) {
+		  $('#filter-select').modal('hide');
+		})						
+
+	  </script>
+     
