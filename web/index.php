@@ -35,6 +35,7 @@ $app = new Silex\Application();
 
 #### DEFINITIONS #######
 $app['debug'] = true;
+$app['version'] = '1.3';
 
 // twig
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
@@ -89,7 +90,20 @@ $app['access'] = $app->share(function ($app) {
 
 #### CONTROLLERS ####
 // installation script
-$app->match('/install-filters', function () use ($app) {
+$app->match('/install/update-scheme/{version}', function ($version) use ($app) {
+    if ($version=='1.3')
+    {
+	$app['db']->executeQuery('ALTER TABLE user_db ADD COLUMN parent_key VARCHAR(255)');
+    }
+    $app['session']->getFlashBag()->add(
+	'success',
+	'Installation succeed !'
+    );    
+
+    return $app->redirect('/moleditor/web/');           
+})->bind('update-scheme');
+
+$app->match('/install/add-filters', function () use ($app) {
     $app['db']->executeQuery('DROP TABLE IF EXISTS filter ');
     
     $filters['MW']= array('longfiltername' => 'Molecular weight',
@@ -146,12 +160,12 @@ $app->match('/install-filters', function () use ($app) {
     }
     $app['session']->getFlashBag()->add(
 	'success',
-	'Reinstallation succeed !'
+	'Installation succeed !'
     );
     
 
     return $app->redirect('/moleditor/web/');           
-})->bind('install');
+})->bind('install-filters');
 
 
 // form for database creation
