@@ -413,7 +413,7 @@ $app->match('/import/{key}', function ($key) use ($app) {
 
 
 // importation from external : file should be send to /src/tmp, then renamed with apropriate name
-$app->match('/import-external/{dbname}/{parentKey}', function ($dbname, $parentKey=null) use ($app) {
+$app->match('/import-external/{dbname}', function ($dbname) use ($app) {
     $dbname=urldecode($dbname);
     $req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, parent_key, session, username_id) VALUES (:dbname, :hash, :public, :private, :parentKey, :session, :username_id)');
     $hash= 'ME'.hash('sha256', $dbname.rand(0,100000));
@@ -421,7 +421,7 @@ $app->match('/import-external/{dbname}/{parentKey}', function ($dbname, $parentK
     $req->bindValue(':hash', $hash);
     $req->bindValue(':private', $private);
     $req->bindValue(':public', '');
-    $req->bindValue(':parentKey', $parentKey);
+    $req->bindValue(':parentKey', '');
     $req->bindValue(':session', $app['session']->getId());
     $req->bindValue(':dbname', $dbname);
     $req->execute();
