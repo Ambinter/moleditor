@@ -94,6 +94,7 @@ $app->match('/install/update-scheme/{version}', function ($version) use ($app) {
     if ($version=='1.3')
     {
 	$app['db']->executeQuery('ALTER TABLE user_db ADD COLUMN parent_key VARCHAR(255)');
+	$app['db']->executeQuery('CREATE TABLE IF NOT EXISTS workflow_file (id INTEGER PRIMARY KEY AUTOINCREMENT, path VARCHAR(255), hash VARCHAR(255), parent INT, filter VARCHAR(255))');
     }
     $app['session']->getFlashBag()->add(
 	'success',
@@ -1235,7 +1236,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }	
     if ($app['session']->get('availability') === null)
     {
-	$app['session']->set('availability', 1);
+	$app['session']->set('availability', 0);
     }
     $config=$app['session']->get('config');
     
@@ -1735,7 +1736,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 		$sheet->setCellValueByColumnAndRow($i, $j, $val);
 	    }
 	    $i++;
-	    $csv.=",".str_replace('"','\"', $val);
+	    $csv.=",".str_replace('"','"', '"'.$val.'"');
         }
 	$j++;
 	$csv.= "\n";
@@ -2427,6 +2428,10 @@ $app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
 
 // Form to enable or disable checking of availability
 $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($app) {
+    $hash=$app['access']->getHash($key);
+    $request = $app['request'];
+
+    // toggle the availability checking
     $av = $app['session']->get('availability');
     if ($av)
     {
@@ -2436,6 +2441,63 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
     {
 	$app['session']->set('availability', 1);
     }
+
+// Check availability on Ambinter website (only if availability variable is ON)
+    if ($app['session']->get('availability'))
+    {
+	$available='';
+
+	$req = $app['db']->prepare('SELECT ID, structure, header, availability FROM '.$hash.'_sdf ORDER BY ID ASC');
+	$res=$req->execute();
+	while ($row = $req->fetch(PDO::FETCH_ASSOC))
+	{
+	    $id=$row['ID'];
+	    $header=$row['header'];
+	    $available=$row['availability'];
+	    $struct=$header."\n".$row['structure'];
+	    if (!$available)
+	    {
+		$inckiTab[] = $app['babel']->getInchiKey($struct);
+
+		// workaround for encoding slash (By default, apache do not want to encode/decode slash into %2F, need to replace by %252F, else this return a 404 error
+		//$smiles = str_ireplace('%2F', '%252F', $smiles);
+	    }
+	}
+	if (isset($inchiTab))
+	{
+	    
+	    $inckiKey = urlencode(implode(',', $inckiTab));
+	    if ($inckiKey)
+	    {
+		$file = file('http://www.ambinter.com/api/search/'.$inckiKey);
+		if (isset($file[0]))
+		{
+		    $availableTab=explode(',', $file[0]);
+		}
+
+	    }
+	    $req = $app['db']->prepare('SELECT ID, structure, header, availability FROM '.$hash.'_sdf ORDER BY ID ASC');
+	    $res=$req->execute();
+	    $i=0;
+	    while ($row = $req->fetch(PDO::FETCH_ASSOC))
+	    {
+		if(isset($availableTab[$i]))
+		{
+		    $available=$availableTab[$i];
+		    if (!$availableTab[$i])
+		    {
+			$available='NA';
+		    }
+		    $req_upd = $app['db']->prepare('UPDATE '.$hash.'_sdf SET availability=:available WHERE ID=:ID');
+		    $req_upd->bindValue(':ID', $id);
+		    $req_upd->bindValue(':available', $availableTab[$i]);
+		    $res_upd=$req_upd->execute();
+		}
+		$i++;
+	    }
+	}
+    }
+
     if ($place=='index')
     {
 	return $app->redirect('/moleditor/web/display/'.$key);           
@@ -2444,6 +2506,8 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
     {
 	return $app->redirect('/moleditor/web/column-management/'.$key);           
     }
+
+    
 })->bind('check-availability');
 
 
@@ -2460,8 +2524,13 @@ $app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($ap
     {
 	$header=$row['header'];
 	$available=$row['availability'];
+	if ($available=='NA')
+	{
+	    $available='';
+	}
 	$struct=$header."\n".$row['structure'];
     }
+
     if (!$available)
     {
 	$smiles = $app['depict']->getSmiles($struct);
@@ -2472,7 +2541,7 @@ $app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($ap
 
 	if ($smiles)
 	{
-	    $file = file('http://www.ambinter.com/api/search/'.$smiles);
+	    $file = file('http://www.ambinter.com/api/search/smiles/'.$smiles);
 	    if (isset($file[0]))
 	    {
 		$available=$file[0];
@@ -2608,8 +2677,6 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
     $f = fopen ($filename, 'w+');
 	fwrite ($f, $sdf);
     fclose($f);
-    $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS workflow_file (id INTEGER PRIMARY KEY AUTOINCREMENT, path VARCHAR(255), hash VARCHAR(255), parent INT, filter VARCHAR(255))');
-  //  $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS workflow_link (id INTEGER PRIMARY KEY AUTOINCREMENT, parent INT, child INT, filter VARCHAR(255))');
 
     $req = $app['db']->prepare('SELECT count(*) nb FROM workflow_file WHERE path=:path AND hash=:hash');
     $req->bindValue(':hash', $hash);

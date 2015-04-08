@@ -26,10 +26,6 @@ Class Access
 			{
 				if ($key!=$row['private'])
 				{
-					//$this->app['session']->getFlashBag()->add(
-						//'danger',
-						//'You have not access to this page !'
-						//);
 					echo 'You have not access to this page !';
 					exit();
 				}

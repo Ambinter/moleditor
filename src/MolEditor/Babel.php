@@ -63,4 +63,23 @@ Class Babel
 		}
 		return false;
 	}
+
+	public function getInchiKey ($input)
+	{
+		$molfile_path= __DIR__.'/../tmp/mol';
+		$f=fopen ($molfile_path.'.mol', 'w+');
+		fputs ($f, $input);
+		fclose($f);
+
+		if ($input)
+		{
+			exec ('obabel -i'.$input.'\' -oinchiKey', $output);
+			if (isset($output[1]))
+			{
+				$inckiKey=$output[1];
+				
+				return $inckiKey;
+			}
+		}
+	}
 }

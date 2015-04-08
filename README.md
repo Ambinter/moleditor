@@ -17,7 +17,10 @@ Installation
 ------------
 
 Just download MolEditor on your server (see requirements first) and it should work on http://localhost/moleditor
-Configure your php.ini with upload_max_filesize=50M
+Configure your php.ini with upload_max_filesize=50M.
+
+If necessary, run localhost/moleditor/web/install/add-filters and localhost/moleditor/web/install/update-scheme/{version}
+Directories /moleditor/src/db, /moleditor/src/tmp, /moleditor/src/workflow must be accessible for writing (run a chmod 777 if necessary)
 
 [1]: http://www.ambinter.com/moleditor
 [2]: http://silex.sensiolabs.org
