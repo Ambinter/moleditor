@@ -66,20 +66,23 @@ Class Babel
 
 	public function getInchiKey ($input)
 	{
-		$molfile_path= __DIR__.'/../tmp/mol';
-		$f=fopen ($molfile_path.'.mol', 'w+');
+		$molfile_path= __DIR__.'/../tmp/mol.mol';
+		$f=fopen ($molfile_path, 'w+');
 		fputs ($f, $input);
 		fclose($f);
 
-		if ($input)
+		if (file_exists($molfile_path))
 		{
-			exec ('obabel -i'.$input.'\' -oinchiKey', $output);
+			exec ('obabel -i'.$molfile_path.'\' -oinchiKey', $output);
+			unlink($molfile_path);
 			if (isset($output[1]))
 			{
 				$inckiKey=$output[1];
 				
 				return $inckiKey;
 			}
+
 		}
+
 	}
 }

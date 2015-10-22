@@ -23,14 +23,14 @@ Class Depict
         }
 
 		$indigo_depict_path = 'cd '.__DIR__.'/../software;';
-		$taille=250;
+		$taille=170;
 		$rand=rand(0,10000000);
 		$molfile_path= __DIR__.'/../tmp/mol'.$rand;
 		$f=fopen ($molfile_path.'.mol', 'w+');
 		fputs ($f, $mol);
 		fclose($f);
 
-		exec ($indigo_depict_path.' ./indigo-depict_64 '. $molfile_path.'.mol '.$molfile_path.'.'.$type.' -w '.$taille .' -h '.$taille .' -thickness 1.3 -margins  20 20');
+		exec ($indigo_depict_path.' ./indigo-depict_64 '. $molfile_path.'.mol '.$molfile_path.'.'.$type.' -dearom -w '.$taille .' -h '.$taille .' -thickness 1.4 -margins  25 20');
 
 		if (is_file($molfile_path.'.'.$type))
 		{

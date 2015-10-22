@@ -28,6 +28,7 @@ use MolEditor\Access;
 use MolEditor\Filter;
 use MolEditor\FilterClean;
 use MolEditor\FilterSearch;
+use Symfony\Component\HttpFoundation\Response;
 
 require_once __DIR__.'/../vendor/autoload.php';
 $app = new Silex\Application();
@@ -62,7 +63,17 @@ $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
 $app->register(new Silex\Provider\HttpFragmentServiceProvider()
 );
 $app['fragment.renderer.hinclude.global_template'] = 'loading.twig';
+$app->error(function (\Exception $e, $code) {
+    switch ($code) {
+        case 404:
+            $message = 'The requested page could not be found.';
+            break;
+        default:
+            $message = 'We are sorry, but something went wrong.';
+    }
 
+    return new Response($message);
+});
 // session
 $app->register(new Silex\Provider\SessionServiceProvider());
 $app['session']->start();
@@ -2457,19 +2468,19 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
 	    $struct=$header."\n".$row['structure'];
 	    if (!$available)
 	    {
-		$inckiTab[] = $app['babel']->getInchiKey($struct);
-
+		$inchiTab[] = $app['babel']->getInchiKey($struct);
+		
 		// workaround for encoding slash (By default, apache do not want to encode/decode slash into %2F, need to replace by %252F, else this return a 404 error
 		//$smiles = str_ireplace('%2F', '%252F', $smiles);
 	    }
 	}
 	if (isset($inchiTab))
 	{
-	    
-	    $inckiKey = urlencode(implode(',', $inckiTab));
-	    if ($inckiKey)
+	    $inchiKey = urlencode(implode(',', $inchiTab));
+	    echo $inchiKey;exit();
+	    if ($inchiKey)
 	    {
-		$file = file('http://www.ambinter.com/api/search/'.$inckiKey);
+		$file = file('http://www.ambinter.com/api/search/'.$inchiKey);
 		if (isset($file[0]))
 		{
 		    $availableTab=explode(',', $file[0]);
@@ -2481,19 +2492,23 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
 	    $i=0;
 	    while ($row = $req->fetch(PDO::FETCH_ASSOC))
 	    {
-		if(isset($availableTab[$i]))
+		$is_av=$row['availability'];
+		if (!$is_av)
 		{
-		    $available=$availableTab[$i];
-		    if (!$availableTab[$i])
+		    if(isset($availableTab[$i]))
 		    {
-			$available='NA';
+			$available=$availableTab[$i];
+			if (!$availableTab[$i])
+			{
+			    $available='NA';
+			}
+			$req_upd = $app['db']->prepare('UPDATE '.$hash.'_sdf SET availability=:available WHERE ID=:ID');
+			$req_upd->bindValue(':ID', $id);
+			$req_upd->bindValue(':available', $availableTab[$i]);
+			$res_upd=$req_upd->execute();
 		    }
-		    $req_upd = $app['db']->prepare('UPDATE '.$hash.'_sdf SET availability=:available WHERE ID=:ID');
-		    $req_upd->bindValue(':ID', $id);
-		    $req_upd->bindValue(':available', $availableTab[$i]);
-		    $res_upd=$req_upd->execute();
-		}
 		$i++;
+		}
 	    }
 	}
     }
