@@ -1,6 +1,6 @@
 <?php
 // depict.php
-// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano 
+// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano
 namespace MolEditor;
 
 Class Depict
@@ -9,14 +9,14 @@ Class Depict
 	{
 	}
 
-	// Depiction management using Indigo tools (from GGAsoftware) 
+	// Depiction management using Indigo tools (from GGAsoftware)
 	public function getSVG($mol, $type='svg')
 	{
       // browser detection (fallback for IE<8)
         if (isset ($_SERVER['HTTP_USER_AGENT']))
         {
             $browser = $_SERVER['HTTP_USER_AGENT'];
-            if (preg_match ('/MSIE [6-8]\.0/', $browser) || preg_match ('/Firefox\/[2-3]\.[0-9]/', $browser) || preg_match ('/WebKit\/[4-5]/', $browser))
+            if (preg_match ('/MSIE [6-8]\.0/', $browser) || preg_match ('/Firefox\/[2-3]\.[0-9]/', $browser) )
             {
                 $type='png';
             }
@@ -52,7 +52,7 @@ Class Depict
 			$out="No structure";
 		}
 		unlink($molfile_path.'.mol');
-		return $out;  
+		return $out;
 	}
 
 	// Smiles to SDF convertion using indigo
@@ -71,7 +71,7 @@ Class Depict
 			}
 		}
 
-		return true;    
+		return true;
 
 	}
 	// clean: convert sdf to sdf with indo_depict
@@ -93,13 +93,13 @@ Class Depict
 					$sdf .= $line;
 				}
 				unlink($cleansdf_path);
-				return $sdf;    
+				return $sdf;
 			}
 		}
-		return false;    
+		return false;
 
 	}
-	
+
 	// SDF to Smiles using indigo-cano (used for Ambinter availability checking and smiles exportations)
 	public function getSmiles($mol)
 	{
@@ -109,7 +109,7 @@ Class Depict
 		$f=fopen ($molfile_path.'.mol', 'w+');
 		fputs ($f, $mol);
 		fclose($f);
-		// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano 
+		// IMPORTANT - REQUIREMENT: library GLIBC_2.14 required by indigo-cano
 		exec ($indigo_cano_path.' ./indigo-cano_64 '. $molfile_path.'.mol >'.$molfile_path.'.smi');
 		if (is_file($molfile_path.'.smi'))
 		{
@@ -117,7 +117,7 @@ Class Depict
 			unlink($molfile_path.'.smi');
 		}
 		unlink($molfile_path.'.mol');
-		return $smiles;  
+		return $smiles;
 
 	}
 
