@@ -6,14 +6,14 @@ Class Babel
 {
 	public function __construct()
 	{
-		
+
 	}
 
 	// function for compute descriptors
 	public function descriptors($input, $descriptors)
 	{
 		// Managing of aliases for descriptors names between displaying in moleditor column management form and keyword use in openbabel
-		$descriptors_alias = array ('Formula'=>'formula', 'Mol Weight'=>'MW', 'logP'=>'logP', 'Acceptor'=>'HBA2', 'Donor'=>'HBD');
+		$descriptors_alias = array ('Formula'=>'formula', 'Mol Weight'=>'MW', 'logP'=>'logP', 'Acceptor'=>'HBA2', 'Donor'=>'HBD', 'InchiKey'=>'inchiKey', 'Inchi'=>'inchi', 'SMILES'=>'canSMI');
 		foreach ($descriptors as $k=>$descriptor)
 		{
 			if (isset($descriptors_alias[$descriptor]))
@@ -78,7 +78,7 @@ Class Babel
 			if (isset($output[1]))
 			{
 				$inckiKey=$output[1];
-				
+
 				return $inckiKey;
 			}
 

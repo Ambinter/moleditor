@@ -51,7 +51,7 @@ $app->register(new Silex\Provider\TranslationServiceProvider(), array(
     'translator.messages' => array(),
 ));
 $app->register(new Silex\Provider\UrlGeneratorServiceProvider());
-// Doctrine for SQLite 
+// Doctrine for SQLite
 $app->register(new Silex\Provider\DoctrineServiceProvider(), array(
     'db.options' => array(
         'driver'   => 'pdo_sqlite',
@@ -110,14 +110,14 @@ $app->match('/install/update-scheme/{version}', function ($version) use ($app) {
     $app['session']->getFlashBag()->add(
 	'success',
 	'Installation succeed !'
-    );    
+    );
 
-    return $app->redirect('/moleditor/web/');           
+    return $app->redirect('/moleditor/web/');
 })->bind('update-scheme');
 
 $app->match('/install/add-filters', function () use ($app) {
     $app['db']->executeQuery('DROP TABLE IF EXISTS filter ');
-    
+
     $filters['MW']= array('longfiltername' => 'Molecular weight',
 			  'formtype'       => 'Range',
 			  'param'       => 'MW',
@@ -125,7 +125,7 @@ $app->match('/install/add-filters', function () use ($app) {
     $filters['logP']= array('longfiltername' => 'logP',
 			  'formtype'       => 'Range',
 			  'param'       => 'logP',
-			  'classtype'      => 'Basic');	
+			  'classtype'      => 'Basic');
     $filters['acceptor']= array('longfiltername' => 'Acceptors',
 			  'formtype'       => 'Range',
 			  'param'       => 'HBA2',
@@ -158,7 +158,7 @@ $app->match('/install/add-filters', function () use ($app) {
 			  'formtype'       => 'Input',
 			  'param'       => '-s',
 			  'classtype'      => 'Search');
-			  
+
     $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS filter (filtername VARCHAR(50), longfiltername VARCHAR(255), formtype VARCHAR(50), param VARCHAR(50), classtype VARCHAR(50))');
     foreach ($filters as $filtername=>$filter)
     {
@@ -174,9 +174,9 @@ $app->match('/install/add-filters', function () use ($app) {
 	'success',
 	'Installation succeed !'
     );
-    
 
-    return $app->redirect('/moleditor/web/');           
+
+    return $app->redirect('/moleditor/web/');
 })->bind('install-filters');
 
 
@@ -185,7 +185,7 @@ $app->match('/', function () use ($app) {
     $app['session']->set('config', '');
 
     // creation (if not exists yet) of user_table which contains all created table names with session infos, public_address and user id
-    
+
     $app['db']->executeQuery('CREATE TABLE IF NOT EXISTS user_db (dbname VARCHAR(100), hash VARCHAR(255), private VARCHAR(255), public VARCHAR(255), parent_key VARCHAR(255), session VARCHAR(255), username_id INT)');
 
     $form = $app['form.factory']->createBuilder('form')
@@ -222,9 +222,9 @@ $app->match('/', function () use ($app) {
 	    $req->execute();
 
 	    $app['session']->set('modal', 'import');
-	    
-	    return $app->redirect('/moleditor/web/display/'.$private);           
-	    
+
+	    return $app->redirect('/moleditor/web/display/'.$private);
+
         }
     }
     return $app['twig']->render('index.twig', array(
@@ -293,8 +293,8 @@ $app->match('/database/config/{key}', function ($key) use ($app) {
             $data = $form->getData();
 	    $new_dbname=$data['dbname'];
 
-	
-	    
+
+
 	// check if name did not exist yet
 	    $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE session=:session');
 	    $req->bindValue(':session', $app['session']->getId());
@@ -323,7 +323,7 @@ $app->match('/database/config/{key}', function ($key) use ($app) {
 		'success',
 		'The database "'.$dbname.'" has been successfully renamed in "'.$new_dbname.'"!'
 	    );
-	    return $app->redirect('/moleditor/web/display/'.$key);           
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
     return $app['twig']->render('dbConfig.twig', array(
@@ -342,12 +342,12 @@ $app->get('/database/{key}/delete', function ($key) use ($app) {
     $req = $app['db']->prepare('DELETE FROM user_db WHERE hash=:hash');
     $req->bindValue(':hash', $hash);
     $req->execute();
-    
+
     $app['session']->getFlashBag()->add(
 	'success',
 	'The database has been deleted !'
     );
-   return $app->redirect('/moleditor/web/');           
+   return $app->redirect('/moleditor/web/');
 
 })->bind('deleteDB');
 
@@ -390,10 +390,10 @@ $app->match('/import/{key}', function ($key) use ($app) {
 		    $files['FileUpload']->move($path,$filename.'.'.$extension);
 		    if ($extension=='smi')
 		    {
-			$app['depict']->convertSmilesFileToSdfFile($path.$filename.'.'.$extension);	
+			$app['depict']->convertSmilesFileToSdfFile($path.$filename.'.'.$extension);
 		    }
 		    $modal = $app['session']->set('modal', 'import2');
-		    return $app->redirect('/moleditor/web/display/'.$key);           
+		    return $app->redirect('/moleditor/web/display/'.$key);
 		}
 		else
 		{
@@ -402,7 +402,7 @@ $app->match('/import/{key}', function ($key) use ($app) {
 			'Importation error: The file extenstion in unknown. Allowed extensions are .sdf and .smi !'
 		    );
 		    $modal = $app['session']->set('modal', '');
-		    return $app->redirect('/moleditor/web/display/'.$key);           
+		    return $app->redirect('/moleditor/web/display/'.$key);
 
 		}
 	    }
@@ -415,7 +415,7 @@ $app->match('/import/{key}', function ($key) use ($app) {
 		'Upload error !'
 	    );
 	    $modal = $app['session']->set('modal', 'import');
-	    return $app->redirect('/moleditor/web/display/'.$key);           
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
     return $app['twig']->render('import.twig', array(
@@ -440,11 +440,11 @@ $app->match('/import-external/{dbname}', function ($dbname) use ($app) {
     $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_columns (column_name TEXT, column_order INT, alias INT, type VARCHAR(20), coltype VARCHAR(20))');
     $results = $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf ( ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT)');
     $app['session']->set('modal', 'import');
-    
+
     $path = __DIR__.'/../src/tmp/'. $hash.'.sdf';
     copy(__DIR__.'/../src/tmp/'. $dbname.'.sdf', $path) or die ('impossible copy');
     $app['session']->set('import_ext', 1);
-    return $app->redirect('/moleditor/web/import2/'.$private);           
+    return $app->redirect('/moleditor/web/import2/'.$private);
 })->bind('import_ext');
 
 
@@ -459,7 +459,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 
     $nb_mol=0;
     $exist_tag=null;
-    
+
     // error if file does not exist
     if (!is_file($path))
     {
@@ -467,9 +467,9 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 	    'danger',
 	    'Upload problem, the file does not exist!'
 	);
-	return $app->redirect('/moleditor/web/');           
+	return $app->redirect('/moleditor/web/');
     }
-    // if file exist, data are parsed and database is hydrated 
+    // if file exist, data are parsed and database is hydrated
     else
     {
 	$file = file ($path);
@@ -487,7 +487,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		$nb_mol++;
 	    }
 	}
-	
+
 	$preselect=null;
 	$i=0;
 	if (isset($tags))
@@ -498,7 +498,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		$i++;
 	    }
 	}
-	
+
 	//get existing tag in database (when it is not the first file import in the DB)
 	$res = $app['db']->executeQuery('SELECT alias, column_name FROM '.$hash.'_columns WHERE type="tag"');
 	foreach($res as $result)
@@ -509,7 +509,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 	}
 	$i=0;
 
-	// form where the tags will be displayed and propose to user. He could choose to import or not a tag and make correspondance between new and existing files. 
+	// form where the tags will be displayed and propose to user. He could choose to import or not a tag and make correspondance between new and existing files.
 	$builder = $app['form.factory']->createBuilder('form', $preselect);
 	if (isset ($tags))
 	{
@@ -518,7 +518,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		$builder->add('suppr'.$i, 'checkbox', array('required'=>false,
 							'label'=>$tag,
 							'attr'=>array('checked'=>'checked'),
-							
+
 							)
 		);
 		if (is_array($exist_tag))
@@ -537,7 +537,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 
     // if form is submit
     if ($request->isMethod('POST'))
-    {	
+    {
 	$form->bind($request);
 	// and valid
 	if ($form->isValid())
@@ -564,11 +564,11 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		    }
 		    $importTags[$tag]['suppr']=$data['suppr'.$i];
 		    $importTags[$tag]['name']=$name;
-	    
+
 		    $i++;
 		}
 	    }
-	    
+
 	// database hydratation with uploaded file
 	    $i=0;
 	    $m_end=0;
@@ -640,23 +640,23 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 			    $tag='';
 			}
 		    }
-		    
+
 		// bug if dash in column name
 		    $tag=str_replace('-','_',$tag);
-		    
+
 		// rename tag id = 'ID' or 'structure' or 'header' or 'availability'
 		    if (in_array($tag, array('ID','structure','header','availability')))
 		    {
 			$renamed_tag[$tag]=$tag;
 			$tag = $tag.'_2';
 		    }
-		    
+
 		    $next=1;
 		}
 
 		// detect end of molecules in sdf file
 		if ($line=='$$$$')
-		{        
+		{
 		    $i++;
 		    $m_end=0;
 		    $firstline=0;
@@ -670,7 +670,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		    'danger',
 		    'Invalid file structure. Please check if it is a correct SDF format !'
 		    );
-		return $app->redirect('/moleditor/web/');           
+		return $app->redirect('/moleditor/web/');
 	    }
 
 	    // Alert to inform of renamed tags
@@ -731,9 +731,9 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		    $maxalias=max($aliases)+1;
 		}
 		foreach ($insert_columns as $col=>$val)
-		{			
+		{
 		    $fields[]='col'.$maxalias.' TEXT';
-		    
+
 		    $req->bindValue(':column', $col);
 		    $req->bindValue(':order', $i);
 		    $req->bindValue(':alias', $maxalias);
@@ -763,9 +763,9 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		    $colname=$row['column_name'];
 		    $alias=$row['alias'];
 		    $aliascol[$colname]=$alias;
-		    $table_colnames[]=$colname;		
-		    $cols[]='col'.$alias;		
-		    $var[]=':col'.$alias;		
+		    $table_colnames[]=$colname;
+		    $cols[]='col'.$alias;
+		    $var[]=':col'.$alias;
 		}
 	    }
 
@@ -810,7 +810,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		$descriptors[]= $colname;
 		$col_descriptors[$colname]=$val['alias'];
 	    }
-	    
+
 	    // existing descriptors are re-computed
 	    if (isset($descriptors))
 	    {
@@ -830,7 +830,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 		$f = fopen ($desc_sdf_path, 'w+');
 		fwrite ($f, $sdf);
 		fclose($f);
-		
+
 		if (file_exists ($desc_sdf_path))
 		{
 		    $tabdesc=$app['babel']->descriptors($desc_sdf_path, $descriptors);
@@ -855,7 +855,7 @@ $app->match('/import2/{key}', function ($key) use ($app) {
 	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
-    
+
     $modal = $app['session']->set('modal', '');
 
     $nb_tags=0;
@@ -868,18 +868,18 @@ $app->match('/import2/{key}', function ($key) use ($app) {
     return $app['twig']->render('sdfTagsForm.twig', array(
         'form' => $form->createView(), 'key'=>$key, 'nb_mol'=>$nb_mol, 'nb_tags'=>$nb_tags, 'existTags'=>$exist_tag, 'importExt'=>$import_ext
     ));
-    
+
 })->bind('import2');
 
 
 
-// Table sort 
+// Table sort
 $app->get('/sort/{key}/{sort}/{dir}', function ($key, $sort, $dir) use ($app) {
     $config=$app['session']->get('config');
     $config['sort']=$sort;
     $config['dir']=$dir;
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$key);           
+    return $app->redirect('/moleditor/web/display/'.$key);
 })->bind('sort');
 
 
@@ -893,12 +893,12 @@ $app->get('/page/{key}/{offset}', function ($key, $offset) use ($app) {
 	$offset=0;
     }
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$key);           
+    return $app->redirect('/moleditor/web/display/'.$key);
 })->bind('page');
 
 
 
-// thumbnail view 
+// thumbnail view
 $app->get('/preview/{key}/{offset}', function ($key, $offset) use ($app) {
     $hash=$app['access']->getHash($key);
     $keytype=$app['access']->getKeyType($key);
@@ -911,11 +911,11 @@ $app->get('/preview/{key}/{offset}', function ($key, $offset) use ($app) {
 	$structure = $row['structure'];
 	$header = $row['header'];
 	if(!$header)
-	{	
+	{
 	    $header="";
 	}
 	$id = $row['ID'];
-	$structures[$id] = array('header'=>$header, 'structure'=>$app['depict']->getSVG($header."\n".$structure));  
+	$structures[$id] = array('header'=>$header, 'structure'=>$app['depict']->getSVG($header."\n".$structure));
     }
     $res = $app['db']->fetchAll('SELECT count(*) nb FROM '.$hash.'_sdf');
     $nbmol=0;
@@ -923,7 +923,7 @@ $app->get('/preview/{key}/{offset}', function ($key, $offset) use ($app) {
     {
        $nbmol= $row['nb'];
     }
-    
+
     return $app['twig']->render('preview.twig', array(
         'key'=>$key , 'keytype'=>$keytype, 'structures' => $structures, 'offset'=>$offset, 'nbmol'=>$nbmol
     ));
@@ -950,7 +950,7 @@ $app->get('/preview-one/{key}/{id}', function ($key, $id) use ($app) {
 		$tag='ID';
 	    }
 	    elseif ($k=='header')
-	    {		
+	    {
 		$tag='header';
 	    }
 	    elseif ($k=='structure')
@@ -972,7 +972,7 @@ $app->get('/preview-one/{key}/{id}', function ($key, $id) use ($app) {
 	    {
 		$structures[$tag] = $val;
 	    }
-	}  
+	}
     }
     $offset = $app['request']->get('offset');
 
@@ -987,7 +987,7 @@ $app->match('/reset-search/{key}', function ($key) use ($app) {
     $config=$app['session']->get('config');
     $config['clausewhere']='';
     $app['session']->set('config', $config);
-    return $app->redirect('/moleditor/web/display/'.$key);   
+    return $app->redirect('/moleditor/web/display/'.$key);
 })->bind('reset');
 
 
@@ -997,7 +997,7 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
     $config=$app['session']->get('config');
 
     $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$hash.'_columns ORDER BY column_order');
-    
+
     $colselect['header']='header';
     $tabcoltype['header']='text';
     $tabcoltype['ID']='numeric';
@@ -1009,7 +1009,7 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 	$colselect[$al]=$row_name;
 	$tabcoltype[$al]=$row['coltype'];
     }
-    
+
     $datasearch=array();
     $clausewhere = $config['clausewhere'];
 
@@ -1018,20 +1018,20 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 	$datasearch['col']=$res[1];
 	$datasearch['search']=preg_replace ('/[%"]/', '', $res[2]);
     }
-    
+
     $request = $app['request'];
 
     // form (dynamic according to column type, numeric or text)
     $builder = $app['form.factory']->createBuilder('form', $datasearch);
     $builder->add('searchtypenumeric', 'choice', array('choices'=>array('sup'=>'>', 'supe'=>'>=', 'exact'=>'=','infe'=>'<=', 'inf'=>'<', 'between'=>'Range')));
     $builder->add('searchtypetext', 'choice', array('choices'=>array('start'=>'Start with', 'contain'=>'Contain', 'end'=>'End with','exact'=>'Exact')));
-    
+
     $builder->add('col', 'choice', array('choices'=>$colselect))
 	    ->add('search', 'search', array('attr'=>array('class'=>'input-sm form-control search_main')))
 	    ->add('search2', 'search', array('required'=>false,
 					     'attr'=>array('class'=>'input-sm form-control search_range')));
     $formsearch = $builder->getForm();
-    
+
     if ($request->isMethod('POST'))
     {
 	$formsearch->bind($request);
@@ -1069,46 +1069,46 @@ $app->match('/search-by/{key}', function ($key) use ($app) {
 
 		if($searchType == 'sup')
 		{
-		    $searchEq = '>';		    
+		    $searchEq = '>';
 		}
 		if($searchType == 'supe')
 		{
-		    $searchEq = '>=';		    
+		    $searchEq = '>=';
 		}
 		if($searchType == 'inf')
 		{
-		    $searchEq = '<';		    
+		    $searchEq = '<';
 		}
 		if($searchType == 'infe')
 		{
-		    $searchEq = '<=';		    
+		    $searchEq = '<=';
 		}
 		if($searchType == 'between')
 		{
 		    $searchEq = 'BETWEEN';
 		    $search2=' AND ' .$data['search2'];
-    
+
 		}
-		
+
 		if ($colType=='text')
 		{
 		    $search = '"'.$search.'"';
-		}			
+		}
 		if ($colType=='numeric')
 		{
 		    $col = 'CAST('.$col.' AS INT)';
-		}	
+		}
 		$clausewhere = 'WHERE '.$col.' '.$searchEq.' '.$search.$search2;
 
 		// enregistrement de la clausewhere dans les var de session
 		$config['offset']=0;
 		$config['clausewhere']=$clausewhere;
 		$app['session']->set('config', $config);
-		
+
 		return $app->redirect('/moleditor/web/display/'.$key);
 	    }
 	}
-    }  
+    }
 
     return $app['twig']->render('searchForm.twig', array(
         'key'=>$key, 'coltypes'=>$tabcoltype, 'formsearch'=>$formsearch->createView()
@@ -1170,7 +1170,7 @@ $app->match('/make-public/{key}/{is_public}', function ($key, $is_public) use ($
     $res=$req->execute();
 
     return $app->redirect('/moleditor/web/share/'.$key);
-    
+
 })->bind('make-public');
 
 // one cell update
@@ -1184,7 +1184,7 @@ $app->match('/edit-val/{key}/{id}/{col}', function ($key, $id, $col) use ($app) 
     {
         $value= $row[$col];
     }
-    
+
     $formdata['value']=$value;
     $form = $app['form.factory']->createBuilder('form', $formdata)
 	->add('value', 'text', array( 'attr'=>array('class'=>'form-control'),
@@ -1209,7 +1209,7 @@ $app->match('/edit-val/{key}/{id}/{col}', function ($key, $id, $col) use ($app) 
 	}
     }
 
-  
+
     return $app['twig']->render('editVal.twig', array(
 	'key'=>$key, 'form'=>$form->createView(), 'id'=>$id, 'col'=>$col
     ));
@@ -1228,7 +1228,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
 	    'danger',
 	    'You have not access to this database !'
 	    );
-	return $app->redirect('/moleditor/web/');           
+	return $app->redirect('/moleditor/web/');
     }
 
     $req = $app['db']->prepare('SELECT parent_key FROM user_db WHERE hash=:hash');
@@ -1244,13 +1244,13 @@ $app->match('/display/{key}', function ($key) use ($app) {
     if ($app['session']->get('config') === null)
     {
 	$app['session']->set('config', array('offset'=>0, 'dir'=>'asc', 'sort'=>'ID'));
-    }	
+    }
     if ($app['session']->get('availability') === null)
     {
 	$app['session']->set('availability', 0);
     }
     $config=$app['session']->get('config');
-    
+
     // clausewhere for search request
     if (!isset($config['clausewhere']))
     {
@@ -1262,7 +1262,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }
 
     $lim=10;
-    
+
     $result = $app['db']->fetchAll('SELECT column_name, alias, column_order, type, coltype FROM '.$hash.'_columns ORDER BY column_order');
     $columns = array();
     $alias = array();
@@ -1274,7 +1274,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     $colselect['header']='header';
     $tabcoltype['header']='text';
     $tabcoltype['ID']='numeric';
-    
+
     // Get the column info from the results
     foreach ($result as $row)
     {
@@ -1297,7 +1297,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }
     else
     {
-	$offset=$config['offset'];	 
+	$offset=$config['offset'];
     }
     if (!isset($config['dir']))
     {
@@ -1305,7 +1305,7 @@ $app->match('/display/{key}', function ($key) use ($app) {
     }
     else
     {
-	$dir=$config['dir'];	 
+	$dir=$config['dir'];
     }
     if (!isset($config['sort']))
     {
@@ -1368,11 +1368,11 @@ $app->match('/display/{key}', function ($key) use ($app) {
 	    $header="\n";
 	    if ($tag=='header')
 	    {
-		$header = $val;  
+		$header = $val;
 	    }
 	    if ($tag=='structure')
 	    {
-		$values['structure'] = $app['depict']->getSVG($header.$val);  
+		$values['structure'] = $app['depict']->getSVG($header.$val);
 	    }
 	    elseif ($tag!='ID')
 	    {
@@ -1382,13 +1382,13 @@ $app->match('/display/{key}', function ($key) use ($app) {
 	$tags[$id]=$values;
     }
 
-    // display modal 
+    // display modal
     $modal = $app['session']->get('modal');
     if ($modal=='import' && $nbmol)
     {
 	$modal = $app['session']->set('modal', '');
     }
-    
+
     return $app['twig']->render('sdf.twig', array(
 	'key'=>$key, 'parentKey'=>$parentKey, 'keytype'=>$keytype, 'columns' => $coltab, 'tags'=>$tags, 'lim'=>$lim, 'nbmol'=>$nbmol, 'search'=>$clausewhere, 'modal'=>$modal
     ));
@@ -1396,49 +1396,49 @@ $app->match('/display/{key}', function ($key) use ($app) {
 ->bind('display');
 
 
-// Delete a line 
+// Delete a line
 $app->get('/delete-row/{key}/{id}', function ($key,$id) use ($app) {
     $hash=$app['access']->getHash($key, 'privateOnly');
     $req = $app['db']->prepare('DELETE FROM '.$hash.'_sdf WHERE ID=:id');
-    $req->bindValue(':id',$id);					
+    $req->bindValue(':id',$id);
     $req->execute();
     $offset = $app['request']->get('offset');
 
     if (isset($offset))
     {
-	return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);   
+	return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);
     }
     else
     {
-	return $app->redirect('/moleditor/web/display/'.$key.'#'.$id);   
+	return $app->redirect('/moleditor/web/display/'.$key.'#'.$id);
     }
-    
+
 })->bind('deleteRow');
 
 
-// Delete a column    
+// Delete a column
 $app->get('/delete-col/{key}/{col_order}', function ($key, $col_order) use ($app) {
     $hash=$app['access']->getHash($key, 'privateOnly');
     $request = $app['request'];
-    
+
     // get alias
-    $req = $app['db']->prepare('SELECT alias FROM '.$hash.'_columns WHERE column_order=:col_order'); 
+    $req = $app['db']->prepare('SELECT alias FROM '.$hash.'_columns WHERE column_order=:col_order');
     $req->bindValue(':col_order', $col_order);
     $req->execute();
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
         $alias= $tab['alias'];
-    }   
-    
+    }
+
     // delete corresponding line in table column
-    $req = $app['db']->prepare('DELETE FROM '.$hash.'_columns WHERE column_order=:col_order'); 
+    $req = $app['db']->prepare('DELETE FROM '.$hash.'_columns WHERE column_order=:col_order');
     $req->bindValue(':col_order', $col_order);
     $req->execute();
-    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=(column_order-1) WHERE column_order > :col_order'); 
+    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=(column_order-1) WHERE column_order > :col_order');
     $req->bindValue(':col_order', $col_order);
     $req->execute();
 
-    $req = $app['db']->executeQuery('SELECT alias FROM '.$hash.'_columns'); 
+    $req = $app['db']->executeQuery('SELECT alias FROM '.$hash.'_columns');
     $fields=$fields_type='';
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
@@ -1449,36 +1449,36 @@ $app->get('/delete-col/{key}/{col_order}', function ($key, $col_order) use ($app
     {
 	$fields=','.implode(',',$tab_fields);
 	$fields_type=','.implode(',',$tab_fields_type);
-    }    
+    }
 
-    // SQLite could not delete a column. Fix: temp table need to be created, copy data without deleted column, then drop old table and rename new one  
-    $app['db']->executeQuery('BEGIN TRANSACTION'); 
-    $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf_backup (ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT '.$fields.');'); 
-    $app['db']->executeQuery('INSERT INTO  '.$hash.'_sdf_backup SELECT ID, structure, header, availability '.$fields.' FROM '.$hash.'_sdf'); 
-    $app['db']->executeQuery('DROP TABLE '.$hash.'_sdf'); 
-    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf_backup RENAME TO '.$hash.'_sdf'); 
-    $app['db']->executeQuery('COMMIT'); 
-  
+    // SQLite could not delete a column. Fix: temp table need to be created, copy data without deleted column, then drop old table and rename new one
+    $app['db']->executeQuery('BEGIN TRANSACTION');
+    $app['db']->executeQuery('CREATE TABLE '.$hash.'_sdf_backup (ID INTEGER PRIMARY KEY, structure TEXT, header TEXT, availability TEXT '.$fields.');');
+    $app['db']->executeQuery('INSERT INTO  '.$hash.'_sdf_backup SELECT ID, structure, header, availability '.$fields.' FROM '.$hash.'_sdf');
+    $app['db']->executeQuery('DROP TABLE '.$hash.'_sdf');
+    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf_backup RENAME TO '.$hash.'_sdf');
+    $app['db']->executeQuery('COMMIT');
+
     if ($request->isXmlHttpRequest())
     {
-	return $app->redirect('/moleditor/web/column-management/'.$key);   
+	return $app->redirect('/moleditor/web/column-management/'.$key);
     }
     else
     {
-	return $app->redirect('/moleditor/web/display/'.$key);   
+	return $app->redirect('/moleditor/web/display/'.$key);
     }
 })->bind('deleteCol');
 
 
-// form for update a column type    
+// form for update a column type
 $app->match('/change-column-type/{key}/{alias}', function ($key, $alias) use ($app) {
     $hash=$app['access']->getHash($key);
     $request = $app['request'];
 
     $alias = str_replace ('col', '', $alias);
-    $req = $app['db']->prepare('SELECT type, coltype FROM '.$hash.'_columns WHERE alias=:alias'); 
+    $req = $app['db']->prepare('SELECT type, coltype FROM '.$hash.'_columns WHERE alias=:alias');
     $req->bindValue(':alias', $alias);
-    $req->execute();  
+    $req->execute();
     $disabled=false;
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
@@ -1504,14 +1504,14 @@ $app->match('/change-column-type/{key}/{alias}', function ($key, $alias) use ($a
 	//{
 	    $data=$form->getData();
 	    $coltype=$data['coltype'];
-	    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET coltype=:coltype WHERE alias=:alias'); 
+	    $req = $app['db']->prepare('UPDATE '.$hash.'_columns SET coltype=:coltype WHERE alias=:alias');
 	    $req->bindValue(':alias', $alias);
 	    $req->bindValue(':coltype', $coltype);
 	    $req->execute();
 	//}
-	    return $app->redirect('/moleditor/web/column-management/'.$key);   
+	    return $app->redirect('/moleditor/web/column-management/'.$key);
     }
-    
+
     return $app['twig']->render('colTypeUpdate.twig', array(
 	'key'=>$key, 'alias'=>$alias, 'form' => $form->createView()
     ));
@@ -1527,9 +1527,9 @@ $app->get('/move-col/{key}/{col_order}/{dir}', function ($key, $col_order, $dir)
 	$result = $req->fetchAll();
 	$maxorder=$result[0]['maxorder'];
 	$minorder=$result[0]['minorder'];
-	
+
 	// position for column to move is temporarely -1
-	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=-1 WHERE column_order=:col_order'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=-1 WHERE column_order=:col_order');
 	$req->bindValue(':col_order', $col_order);
 	$req->execute();
 	if ($dir=='down')
@@ -1549,17 +1549,17 @@ $app->get('/move-col/{key}/{col_order}/{dir}', function ($key, $col_order, $dir)
 	    $new_order=$maxorder;
 	}
 	// target column get position of column to move
-	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:col_order WHERE column_order=:new_order'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:col_order WHERE column_order=:new_order');
 	$req->bindValue(':col_order', $col_order);
 	$req->bindValue(':new_order', $new_order);
 	$req->execute();
 
 	// column to move (temp -1) get position of target column
-	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:new_order WHERE column_order=-1'); 
+	$req = $app['db']->prepare('UPDATE '.$hash.'_columns SET column_order=:new_order WHERE column_order=-1');
 	$req->bindValue(':new_order', $new_order);
 	$req->execute();
-    return $app->redirect('/moleditor/web/column-management/'.$key);   
-	
+    return $app->redirect('/moleditor/web/column-management/'.$key);
+
 })->bind('moveCol');
 
 
@@ -1591,7 +1591,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
     }
     else
     {
-	$clausewhere=$config['clausewhere'];	 
+	$clausewhere=$config['clausewhere'];
     }
     if (!isset($config['dir']))
     {
@@ -1599,7 +1599,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
     }
     else
     {
-	$dir=$config['dir'];	 
+	$dir=$config['dir'];
     }
     if (!isset($config['sort']))
     {
@@ -1612,7 +1612,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 
     $columns = array();
 
-    
+
     $req = $app['db']->executeQuery('SELECT column_name, alias,column_order,coltype FROM '.$hash.'_columns ORDER BY column_order');
     $result = $req->fetchAll();
     $alias = array();
@@ -1659,21 +1659,21 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 	    $i++;
 	}
     }
-    
+
     // CSV header
     if ($type=='csv')
     {
 	$csv='"header","structure","'.implode('","',$columns).'"'."\n";
     }
     $smi='';
-    
+
     // add_col fix if no tag in SDF
     $add_col='';
     if ($alias)
     {
 	$add_col=','.implode(',',array_values($alias));
     }
-    
+
     // get the column type (numeric ou text)
     $orderby=$sort;
     if (isset($coltype[$sort]))
@@ -1684,8 +1684,8 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 	    $orderby='CAST('. $sort.' AS INT)';
 	}
     }
-    
- 
+
+
     $req = $app['db']->prepare('SELECT structure, header'.$add_col.$avail.' FROM '.$hash.'_sdf '.$clausewhere.' ORDER BY '.$orderby.' '. $dir);
 
     $res=$req->execute();
@@ -1722,7 +1722,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
         $sdf.= $colstruct."\n";
         unset($tab['header']);
         unset($tab['structure']);
-	
+
 	$i=2;
         foreach ($tab as $tag=>$val)
         {
@@ -1753,9 +1753,9 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 	$csv.= "\n";
         $sdf.="$$$$\n";
     }
-    
-    
-    // creation of exported file    
+
+
+    // creation of exported file
     $filename = __DIR__.'/../src/tmp/'.$dbname.'.'.$type;
     $outpath = __DIR__.'/../src/tmp/export'.$hash.'.'.$type;
     $f = fopen ($outpath, 'w+');
@@ -1802,7 +1802,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
     };
     return $app->stream($stream, 200, array(
         'Content-Type' => $contentType,
-        'Content-Disposition' => 'attachment; filename="'.basename($filename).'"'	
+        'Content-Disposition' => 'attachment; filename="'.basename($filename).'"'
         ));
     })
 ->bind('export');
@@ -1812,7 +1812,7 @@ $app->get('/export/{key}/{type}', function ($key, $type) use ($app) {
 $app->match('/column-management/{key}', function ($key) use ($app) {
     $hash=$app['access']->getHash($key);
     $request = $app['request'];
-   
+
     $result = $app['db']->fetchAll('SELECT column_name, alias,column_order, type, coltype FROM '.$hash.'_columns WHERE type IN ("tag", "descriptor") ORDER BY column_order');
     $columns = array();
     $alias = array();
@@ -1832,11 +1832,11 @@ $app->match('/column-management/{key}', function ($key) use ($app) {
 	    $coltab[$row_alias] = array ('alias'=>'col'.$row['alias'], 'name'=>$row_name, 'order'=>$row['column_order'], 'type'=>$row['type'],'coltype'=>$row_coltype);
 	}
     }
-    
+
     return $app['twig']->render('colManagement.twig', array(
         'key'=>$key, 'columns' => $coltab
     ));
- 
+
 })->bind('colManagement');
 
 
@@ -1848,18 +1848,21 @@ $app->match('/newdesc/{key}', function ($key) use ($app) {
 				'MW'=> array('label'=> 'Mol Weight','coltype'=>'numeric'),
 				'logP'=> array('label'=> 'logP','coltype'=>'numeric'),
 				'HBA2'=> array('label'=> 'Acceptor','coltype'=>'numeric'),
-				'HBD'=> array('label'=> 'Donor','coltype'=>'numeric')
+				'HBD'=> array('label'=> 'Donor','coltype'=>'numeric'),
+				'inchi'=> array('label'=> 'Inchi','coltype'=>'text'),
+				'inchiKey'=> array('label'=> 'InchiKey','coltype'=>'text'),
+				'cansmi'=> array('label'=> 'SMILES','coltype'=>'text'),
 				);
-				
+
     foreach($descriptors_array as $k => $val)
     {
 	$descriptor_coltype[$k] = $val['coltype'];
 	$descriptor_list[$k] = $val['label'];
     }
-    
+
     // Get columns corresponding to descriptors
     $req=$app['db']->executeQuery('SELECT column_name, alias, type FROM '.$hash.'_columns');
-    
+
     $res = $req->fetchAll();
     $doublon_colname='';
     foreach ($res as $val)
@@ -1871,20 +1874,20 @@ $app->match('/newdesc/{key}', function ($key) use ($app) {
 	    if ($colname==$longdesc && $type=='descriptor')
 	    {
 		unset($descriptor_list[$shortdesc]);
-	    }	    
+	    }
 	    if ($colname==$longdesc && $type=='tag')
 	    {
-		$doublon_colname=$shortdesc;         
+		$doublon_colname=$shortdesc;
 	    }
 	}
     }
-   
+
     $form = $app['form.factory']->createBuilder('form')
     ->add('coldesc', 'choice', array('choices'=>$descriptor_list
-				)	    
+				)
     )
     ->getForm();
-	
+
     if ($request->isMethod('POST'))
     {
         $form->bind($request);
@@ -1965,7 +1968,7 @@ $app->match('/newdesc/{key}', function ($key) use ($app) {
 		    'A column named "'.$colname.'" already exists. Please rename it first before adding this descriptor column !'
 		);
 	    }
-	    return $app->redirect('/moleditor/web/display/'.$key);           
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
     return $app['twig']->render('colNewDesc.twig', array(
@@ -1983,7 +1986,7 @@ $app->match('/newcol/{key}', function ($key) use ($app) {
     $form = $app['form.factory']->createBuilder('form')
         ->add('colname')
         ->getForm();
-	
+
     if ($request->isMethod('POST'))
     {
         $form->bind($request);
@@ -2037,13 +2040,13 @@ $app->match('/newcol/{key}', function ($key) use ($app) {
 		    $app['db']->executeQuery('ALTER TABLE '.$hash.'_sdf ADD COLUMN col'.$newalias.' TEXT');
 		}
 	    }
-	    return $app->redirect('/moleditor/web/display/'.$key);           
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
     return $app['twig']->render('colNew.twig', array(
         'key'=>$key, 'form' => $form->createView()
     ));
-    
+
 })->bind('newCol');
 
 
@@ -2071,7 +2074,7 @@ $app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
 	$type = $tab['type'];
     }
     if ($col=='header')
-    { 	  
+    {
 	$column['name']='header';
 	$column['alias']='header';
 	$column['coltype']='text';
@@ -2111,12 +2114,12 @@ $app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
     $request = $app['request'];
     // form for updating column features and/or values
     $builder = $app['form.factory']->createBuilder('form', $data);
-    
+
     // If updated column is the header, field for renaming column is disabled
     $disabled_colname=$disabled_values=$disabled_coltype=false;
     if ($col=='header')
     {
-        $disabled_colname=true;					    
+        $disabled_colname=true;
 	$disabled_coltype=true;
     }
     if ($type=='descriptor')
@@ -2132,24 +2135,24 @@ $app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
 					    'disabled'=>$disabled_coltype
 					    )
     );
-  
+
     if ($type=='descriptor')
     {
-        $disabled_values=true;		    
+        $disabled_values=true;
     }
     $builder->add('values', 'textarea', array('attr'=>array('class'=>'form-control input-sm',
 							'rows'=>10),
 					      'required'=>false,
-					      'disabled'=>$disabled_values	    
+					      'disabled'=>$disabled_values
 					    )
 	);
     $builder->add('sameForAll', 'text', array('attr'=>array('class'=>'form-control input-sm',
 							),
 					      'required'=>false,
-					      'disabled'=>$disabled_values	    
+					      'disabled'=>$disabled_values
 					    )
 	);
-    
+
     $form = $builder->getForm();
 
     if ($request->isMethod('POST'))
@@ -2168,7 +2171,7 @@ $app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
 		$req->bindValue(':alias', str_replace('col','',$col));
 		$res=$req->execute();
 	    }
-	    
+
 	    if ($colname)
 	    {
 		// get all existing columns
@@ -2233,14 +2236,14 @@ $app->match('/column-update/{key}/{col}', function ($key, $col) use ($app) {
 		$sql = 'END TRANSACTION';
 		$app['db']->executeQuery($sql);
 	    }
-    	    return $app->redirect('/moleditor/web/display/'.$key);           
+    	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
-    
+
     return $app['twig']->render('colUpdate.twig', array(
         'key'=>$key, 'form' => $form->createView(), 'column'=>$column
     ));
- 
+
 })->bind('colUpdate');
 
 // 3D
@@ -2264,14 +2267,14 @@ $app->match('/3d/{key}/{id}', function ($key, $id) use ($app) {
     $f = fopen ($sdf_path, 'w+');
     fwrite ($f, $struct);
     fclose($f);
-    
+
     if (file_exists ($sdf_path))
     {
 	$sdf=$app['babel']->get3D($sdf_path);
 	$sdf= str_replace ("\r", "", trim($sdf));
 	$sdf = str_replace ("\n", "\\n", $sdf);
 
-	
+
 	unlink($sdf_path);
     }
 
@@ -2293,7 +2296,7 @@ $app->match('/clean/{key}/{id}', function ($key, $id) use ($app) {
 	$header=$row['header'];
 	$struct="\n".$row['structure'];
     }
-    
+
     if (isset($struct))
     {
 	// create a temp SDF
@@ -2312,14 +2315,14 @@ $app->match('/clean/{key}/{id}', function ($key, $id) use ($app) {
 	$req->bindValue(':structure', $sdf_clean);
 	$res=$req->execute();
    }
-    return $app->redirect('/moleditor/web/preview-one/'.$key.'/'.$id);           
-   
+    return $app->redirect('/moleditor/web/preview-one/'.$key.'/'.$id);
+
 })->bind('clean');
 
 
 // Sketcher management (draw new or update existing structure)
 $app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
-    
+
     $hash=$app['access']->getHash($key);
     $request = $app['request'];
 
@@ -2403,7 +2406,7 @@ $app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
 		fwrite ($f, $sdf);
 		fclose($f);
 
-		
+
 		// Computation of descriptors from SDF
 		if (file_exists ($desc_sdf_path))
 		{
@@ -2424,10 +2427,10 @@ $app->match('/ketcher/{key}/{id}', function ($key, $id) use ($app) {
 	    }
 	    if ($offset!='')
 	    {
-		return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);           
+		return $app->redirect('/moleditor/web/preview/'.$key.'/'.$offset);
 	    }
-	    
-	    return $app->redirect('/moleditor/web/display/'.$key);           
+
+	    return $app->redirect('/moleditor/web/display/'.$key);
 	}
     }
 
@@ -2469,7 +2472,7 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
 	    if (!$available)
 	    {
 		$inchiTab[] = $app['babel']->getInchiKey($struct);
-		
+
 		// workaround for encoding slash (By default, apache do not want to encode/decode slash into %2F, need to replace by %252F, else this return a 404 error
 		//$smiles = str_ireplace('%2F', '%252F', $smiles);
 	    }
@@ -2515,14 +2518,14 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
 
     if ($place=='index')
     {
-	return $app->redirect('/moleditor/web/display/'.$key);           
+	return $app->redirect('/moleditor/web/display/'.$key);
     }
     elseif ($place=='col')
     {
-	return $app->redirect('/moleditor/web/column-management/'.$key);           
+	return $app->redirect('/moleditor/web/column-management/'.$key);
     }
 
-    
+
 })->bind('check-availability');
 
 
@@ -2531,7 +2534,7 @@ $app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($ap
     $hash=$app['access']->getHash($key);
     $request = $app['request'];
     $available='';
-    
+
     $req = $app['db']->prepare('SELECT ID, structure, header, availability FROM '.$hash.'_sdf WHERE ID=:id ');
     $req->bindValue(':id', $id);
     $res=$req->execute();
@@ -2550,7 +2553,7 @@ $app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($ap
     {
 	$smiles = $app['depict']->getSmiles($struct);
 	$smiles = urlencode($smiles);
-	
+
 	// workaround for encoding slash (By default, apache do not want to encode/decode slash into %2F, need to replace by %252F, else this return a 404 error
 	$smiles = str_ireplace('%2F', '%252F', $smiles);
 
@@ -2570,19 +2573,19 @@ $app->match('/commercial-availability/{key}/{id}', function ($key, $id) use ($ap
 	$req->bindValue(':ID', $id);
 	$req->bindValue(':available', $available);
 	$res=$req->execute();
-    }		
+    }
 
     return $app['twig']->render('availability.twig', array(
 	'available'=>$available
     ));
- 
+
 })->bind('availability');
 
 
 // Create a copy of a database
 $app->match('/database/{key}/copy', function ($key) use ($app) {
     $hash=$app['access']->getHash($key);
-    
+
     $req = $app['db']->prepare('SELECT dbname FROM user_db WHERE hash=:hash');
     $req->bindValue(':hash', $hash);
     $res=$req->execute();
@@ -2597,7 +2600,7 @@ $app->match('/database/{key}/copy', function ($key) use ($app) {
     {
 	$newhash= 'ME'.hash('sha256', $dbname.rand(0,100000));
 	$private=hash('adler32', $hash.rand(0,100000));
-		
+
 	$req = $app['db']->prepare('INSERT INTO user_db (dbname, hash, public, private, parent_key, session, username_id) VALUES (:dbname, :hash, :public, :private, :parentKey, :session, :username_id)');
 	$req->bindValue(':hash', $newhash);
 	$req->bindValue(':private', $private);
@@ -2615,7 +2618,7 @@ $app->match('/database/{key}/copy', function ($key) use ($app) {
 	);
 
     }
-    return $app->redirect('/moleditor/web/display/'.$private);           
+    return $app->redirect('/moleditor/web/display/'.$private);
 })->bind('dbcopy');
 
 
@@ -2637,9 +2640,9 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
 
     // get session variable
     $config=$app['session']->get('config');
-   
+
     $columns = array();
-    
+
     $req = $app['db']->executeQuery('SELECT column_name, alias,column_order,coltype FROM '.$hash.'_columns ORDER BY column_order');
     $result = $req->fetchAll();
     $alias = array();
@@ -2661,7 +2664,7 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
     {
 	$add_col=','.implode(',',array_values($alias));
     }
-    
+
     // get the column type (numeric ou text)
     $req = $app['db']->prepare('SELECT structure, header'.$add_col.' FROM '.$hash.'_sdf ');
 
@@ -2675,7 +2678,7 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
         $sdf.= $colstruct."\n";
         unset($tab['header']);
         unset($tab['structure']);
-	
+
 	$i=2;
         foreach ($tab as $tag=>$val)
         {
@@ -2686,8 +2689,8 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
 	$j++;
         $sdf.="$$$$\n";
     }
-    
-    // creation of exported file    
+
+    // creation of exported file
     $filename = __DIR__.'/../src/workflow/'.$dbname.'.sdf';
     $f = fopen ($filename, 'w+');
 	fwrite ($f, $sdf);
@@ -2705,7 +2708,7 @@ $app->get('/workflow/export/{key}', function ($key) use ($app) {
 	$req->bindValue(':path', $filename);
 	$req->execute();
     }
-    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+    return $app->redirect('/moleditor/web/'.$key.'/workflow');
 })->bind('workflow-export');
 
 // display workflow
@@ -2716,7 +2719,7 @@ $app->match('{key}/workflow', function ($key) use ($app) {
     // get first file of workflow
     $id=$workflow='';
 
-    
+
     $req = $app['db']->prepare('SELECT id, path, parent, filter FROM workflow_file WHERE hash=:hash ORDER BY parent ASC, id ASC ');
     $req->bindValue(':hash', $hash);
     $res=$req->execute();
@@ -2727,7 +2730,7 @@ $app->match('{key}/workflow', function ($key) use ($app) {
 	if (is_file($tab['path']))
 	{
 	    $grep=preg_grep('/M\s+END/', file($tab['path']));
-	    
+
 	    $filter='';
 	    if ($tab['filter'])
 	    {
@@ -2759,7 +2762,7 @@ $app->match('{key}/workflow', function ($key) use ($app) {
 $app->match('{key}/workflow/filter-select/{id}', function ($key,$id) use ($app) {
     $hash=$app['access']->getHash($key);
     $keytype=$app['access']->getKeyType($key);
-    
+
     $req = $app['db']->executeQuery('SELECT filtername, longfiltername, formtype, param, classtype FROM filter ORDER BY longfiltername ASC');
     while ($tab = $req->fetch(\PDO::FETCH_ASSOC))
     {
@@ -2785,7 +2788,7 @@ $app->match('{key}/workflow/filter/{id}/{filtername}', function ($key,$id,$filte
 
     $hash=$app['access']->getHash($key);
     $keytype=$app['access']->getKeyType($key);
-    
+
     $req = $app['db']->prepare('SELECT filtername, longfiltername, formtype, param, classtype FROM filter WHERE filtername=:filtername');
     $req->bindValue(':filtername', $filtername);
     $req->execute();
@@ -2799,7 +2802,7 @@ $app->match('{key}/workflow/filter/{id}/{filtername}', function ($key,$id,$filte
     }
     $classtype='filter'.$filter['classtype'];
     $formtype='getForm'.$filter['formtype'];
-    
+
     $form = $app[$classtype]->$formtype($key, $id, $filtername);
 
     $request = $app['request'];
@@ -2809,11 +2812,11 @@ $app->match('{key}/workflow/filter/{id}/{filtername}', function ($key,$id,$filte
         if ($form->isValid())
         {
 	    $data = $form->getData();
-        
+
     	    $app[$classtype]->setInput($id);
 	    $app[$classtype]->setFilter($filter, $data);
 	    $output=$app[$classtype]->apply();
-	    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+	    return $app->redirect('/moleditor/web/'.$key.'/workflow');
 	}
     }
 
@@ -2833,13 +2836,13 @@ $app->match('{key}/workflow/delete-file/{id}', function ($key, $id) use ($app) {
 	$req->bindValue(':hash', $hash);
 	$res=$req->execute();
 	$parent=$id;
-	
+
 	$req = $app['db']->prepare('DELETE FROM workflow_file WHERE parent LIKE :parent');
 	$req->bindValue(':parent', '%-'.$id.'-%');
 	$res=$req->execute();
-	return $app->redirect('/moleditor/web/'.$key.'/workflow');           
-	
-    
+	return $app->redirect('/moleditor/web/'.$key.'/workflow');
+
+
 })->bind('workflow-delete-file');
 
 $app->match('{key}/workflow/open/{id}', function ($key, $id) use ($app) {
@@ -2860,9 +2863,9 @@ $app->match('{key}/workflow/open/{id}', function ($key, $id) use ($app) {
 	copy($path, $newpath) or die ('impossible copy');
 
 	//copy($path, dir'../tmp/'.basename($path));
-	return $app->redirect($app['url_generator']->generate('import_ext', array('dbname'=>urlencode($dbname), 'parentKey'=>$key)));           
+	return $app->redirect($app['url_generator']->generate('import_ext', array('dbname'=>urlencode($dbname), 'parentKey'=>$key)));
     }
-    //~ return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+    //~ return $app->redirect('/moleditor/web/'.$key.'/workflow');
 })->bind('workflow-open-file');
 
 
@@ -2877,7 +2880,7 @@ $app->match('{key}/workflow/download/{id}', function ($key, $id) use ($app) {
     while ($tab = $req->fetch(PDO::FETCH_ASSOC))
     {
 	$path=$tab['path'];
-    
+
 	if (is_file($path))
 	{
 	    $stream = function () use ($path) {
@@ -2885,11 +2888,11 @@ $app->match('{key}/workflow/download/{id}', function ($key, $id) use ($app) {
 	    };
 	    return $app->stream($stream, 200, array(
 		'Content-Type' => mime_content_type($path),
-		'Content-Disposition' => 'attachment; filename="'.basename($path).'"'	
+		'Content-Disposition' => 'attachment; filename="'.basename($path).'"'
 		));
 	}
     }
-    return $app->redirect('/moleditor/web/'.$key.'/workflow');           
+    return $app->redirect('/moleditor/web/'.$key.'/workflow');
 })->bind('workflow-dl');
 
 
