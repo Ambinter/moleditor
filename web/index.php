@@ -2480,7 +2480,6 @@ $app->match('/check-availability/{key}/{place}', function ($key, $place) use ($a
 	if (isset($inchiTab))
 	{
 	    $inchiKey = urlencode(implode(',', $inchiTab));
-	    echo $inchiKey;exit();
 	    if ($inchiKey)
 	    {
 		$file = file('http://www.ambinter.com/api/search/'.$inchiKey);

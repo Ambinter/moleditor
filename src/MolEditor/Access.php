@@ -29,13 +29,13 @@ Class Access
 					echo 'You have not access to this page !';
 					exit();
 				}
-				
+
 			}
 			$hash=$row['hash'];
 		}
 		return $hash;
 	}
-	
+
 	public function getKeyType($key)
 	{
 		$hash='';
